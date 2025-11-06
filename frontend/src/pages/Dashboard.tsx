@@ -83,13 +83,14 @@ export const Dashboard: React.FC = () => {
                 </p>
               </div>
 
-              <div className="card p-6">
+              <div className="card p-6 cursor-pointer hover:border-primary-500 transition-colors" onClick={() => navigate('/admin/download-history')}>
                 <div className="text-4xl mb-4">📊</div>
                 <h3 className="text-xl font-semibold mb-2">Downloads</h3>
                 {stats ? (
                   <div className="text-sm space-y-1">
                     <p className="text-gray-400">Total: {stats.count || 0}</p>
                     <p className="text-gray-400">Size: {formatBytes(stats.total_size)}</p>
+                    <p className="text-primary-400 text-xs mt-2">Click to view history →</p>
                   </div>
                 ) : (
                   <p className="text-gray-400 text-sm">Track your download history and stats</p>

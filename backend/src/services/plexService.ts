@@ -293,9 +293,29 @@ export class PlexService {
         throw new Error(`Plex URL and token are required. Please configure in Settings. (url: ${!!url}, token: ${!!token})`);
       }
 
-      // Always create a fresh client for reliability
+      // For shared users (userToken provided), use axios directly
+      // The plex-api library has issues with shared user tokens
+      if (userToken) {
+        const response = await axios.get(`${url}/library/sections`, {
+          headers: {
+            'X-Plex-Token': token,
+            'Accept': 'application/json',
+          },
+        });
+
+        if (!response.data?.MediaContainer?.Directory) {
+          return [];
+        }
+
+        return response.data.MediaContainer.Directory.map((dir: any) => ({
+          key: dir.key,
+          title: dir.title,
+          type: dir.type,
+        }));
+      }
+
+      // For admin users (no userToken), use plex-api library as before
       const connectionDetails = this.parseConnectionDetails(url);
-      // plex-api library supports port and https options, but TypeScript definitions are incomplete
       const client = new PlexAPI({
         hostname: connectionDetails.hostname,
         port: connectionDetails.port,

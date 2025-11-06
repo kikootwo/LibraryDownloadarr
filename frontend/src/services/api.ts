@@ -138,6 +138,13 @@ class ApiClient {
     return response.data.history;
   }
 
+  async getAllDownloadHistory(limit: number = 100): Promise<any[]> {
+    const response = await this.client.get<{ history: any[] }>('/media/download-history/all', {
+      params: { limit },
+    });
+    return response.data.history;
+  }
+
   async getDownloadStats(): Promise<any> {
     const response = await this.client.get<{ stats: any }>('/media/download-stats');
     return response.data.stats;

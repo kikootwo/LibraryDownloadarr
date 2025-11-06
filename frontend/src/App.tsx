@@ -9,6 +9,7 @@ import { LibraryView } from './pages/LibraryView';
 import { MediaDetail } from './pages/MediaDetail';
 import { Settings } from './pages/Settings';
 import { SearchResults } from './pages/SearchResults';
+import { DownloadHistory } from './pages/DownloadHistory';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token } = useAuthStore();
@@ -102,6 +103,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <SearchResults />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/download-history"
+              element={
+                <ProtectedRoute>
+                  <DownloadHistory />
                 </ProtectedRoute>
               }
             />
