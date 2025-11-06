@@ -13,9 +13,22 @@ export const createMediaRouter = (db: DatabaseService) => {
   router.get('/recently-added', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-      // Always use admin token for server access
+
+      // Use user's token and server URL if available, otherwise fall back to admin
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
       const adminToken = db.getSetting('plex_token') || undefined;
-      const media = await plexService.getRecentlyAdded(adminToken, limit);
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!token || !serverUrl) {
+        return res.status(500).json({ error: 'Plex server not configured' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+      const media = await plexService.getRecentlyAdded(token, limit);
       return res.json({ media });
     } catch (error) {
       logger.error('Failed to get recently added', { error });
@@ -72,9 +85,21 @@ export const createMediaRouter = (db: DatabaseService) => {
         return res.status(400).json({ error: 'Search query is required' });
       }
 
-      // Always use admin token for server access
+      // Use user's token and server URL if available, otherwise fall back to admin
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
       const adminToken = db.getSetting('plex_token') || undefined;
-      const results = await plexService.search(q, adminToken);
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!token || !serverUrl) {
+        return res.status(500).json({ error: 'Plex server not configured' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+      const results = await plexService.search(q, token);
       return res.json({ results });
     } catch (error) {
       logger.error('Search failed', { error });
@@ -86,9 +111,21 @@ export const createMediaRouter = (db: DatabaseService) => {
   router.get('/:ratingKey', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { ratingKey } = req.params;
-      // Always use admin token for server access
+
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
       const adminToken = db.getSetting('plex_token') || undefined;
-      const metadata = await plexService.getMediaMetadata(ratingKey, adminToken);
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!token || !serverUrl) {
+        return res.status(500).json({ error: 'Plex server not configured' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+      const metadata = await plexService.getMediaMetadata(ratingKey, token);
       return res.json({ metadata });
     } catch (error) {
       logger.error('Failed to get media metadata', { error });
@@ -100,8 +137,21 @@ export const createMediaRouter = (db: DatabaseService) => {
   router.get('/:ratingKey/seasons', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { ratingKey } = req.params;
+
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
       const adminToken = db.getSetting('plex_token') || undefined;
-      const seasons = await plexService.getSeasons(ratingKey, adminToken);
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!token || !serverUrl) {
+        return res.status(500).json({ error: 'Plex server not configured' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+      const seasons = await plexService.getSeasons(ratingKey, token);
       return res.json({ seasons });
     } catch (error) {
       logger.error('Failed to get seasons', { error });
@@ -113,8 +163,21 @@ export const createMediaRouter = (db: DatabaseService) => {
   router.get('/:ratingKey/episodes', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { ratingKey } = req.params;
+
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
       const adminToken = db.getSetting('plex_token') || undefined;
-      const episodes = await plexService.getEpisodes(ratingKey, adminToken);
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!token || !serverUrl) {
+        return res.status(500).json({ error: 'Plex server not configured' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+      const episodes = await plexService.getEpisodes(ratingKey, token);
       return res.json({ episodes });
     } catch (error) {
       logger.error('Failed to get episodes', { error });
@@ -126,8 +189,21 @@ export const createMediaRouter = (db: DatabaseService) => {
   router.get('/:ratingKey/tracks', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { ratingKey } = req.params;
+
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
       const adminToken = db.getSetting('plex_token') || undefined;
-      const tracks = await plexService.getTracks(ratingKey, adminToken);
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!token || !serverUrl) {
+        return res.status(500).json({ error: 'Plex server not configured' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+      const tracks = await plexService.getTracks(ratingKey, token);
       return res.json({ tracks });
     } catch (error) {
       logger.error('Failed to get tracks', { error });
@@ -145,14 +221,22 @@ export const createMediaRouter = (db: DatabaseService) => {
         return res.status(400).json({ error: 'Part key is required' });
       }
 
-      // Always use admin token for server access
-      const adminToken = db.getSetting('plex_token');
-      if (!adminToken) {
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
+      const adminToken = db.getSetting('plex_token') || undefined;
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!token || !serverUrl) {
         return res.status(401).json({ error: 'Plex token required - configure in settings' });
       }
 
-      const metadata = await plexService.getMediaMetadata(ratingKey, adminToken);
-      const downloadUrl = plexService.getDownloadUrl(partKey, adminToken);
+      plexService.setServerConnection(serverUrl, token);
+
+      const metadata = await plexService.getMediaMetadata(ratingKey, token);
+      const downloadUrl = plexService.getDownloadUrl(partKey, token);
 
       // Stream the file through our server
       const response = await axios({
@@ -225,6 +309,7 @@ export const createMediaRouter = (db: DatabaseService) => {
                 username: plexUser.username,
                 isAdmin: plexUser.isAdmin,
                 plexToken: plexUser.plexToken,
+                serverUrl: plexUser.serverUrl,
               };
             }
           }
@@ -235,13 +320,20 @@ export const createMediaRouter = (db: DatabaseService) => {
         return res.status(401).json({ error: 'No token provided' });
       }
 
-      // Always use admin token for server access
-      const adminToken = db.getSetting('plex_token');
-      if (!adminToken) {
+      // Use user's token and server URL if available, otherwise fall back to admin
+      const userToken = user.plexToken;
+      const userServerUrl = user.serverUrl;
+      const adminToken = db.getSetting('plex_token') || undefined;
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const plexToken = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!plexToken || !serverUrl) {
         return res.status(401).json({ error: 'Plex token required - configure in settings' });
       }
 
-      const thumbUrl = plexService.getThumbnailUrl(path, adminToken);
+      const thumbUrl = plexService.getThumbnailUrl(path, plexToken);
       const response = await axios({
         method: 'GET',
         url: thumbUrl,

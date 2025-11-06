@@ -9,6 +9,7 @@ export interface User {
   email: string;
   plexToken?: string;
   plexId?: string;
+  serverUrl?: string;
   isAdmin: boolean;
   createdAt: number;
   lastLogin?: number;
@@ -77,11 +78,22 @@ export class DatabaseService {
         email TEXT,
         plex_token TEXT,
         plex_id TEXT UNIQUE,
+        server_url TEXT,
         is_admin INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL,
         last_login INTEGER
       )
     `);
+
+    // Migration: Add server_url column if it doesn't exist
+    const hasServerUrl = this.db.prepare(`
+      SELECT COUNT(*) as count FROM pragma_table_info('plex_users') WHERE name='server_url'
+    `).get() as { count: number };
+
+    if (hasServerUrl.count === 0) {
+      logger.info('Adding server_url column to plex_users table');
+      this.db.exec('ALTER TABLE plex_users ADD COLUMN server_url TEXT');
+    }
 
     // Migrate sessions table if it has the old FOREIGN KEY constraint
     // Check if sessions table exists with FOREIGN KEY
@@ -176,20 +188,20 @@ export class DatabaseService {
     if (existing) {
       const stmt = this.db.prepare(`
         UPDATE plex_users
-        SET username = ?, email = ?, plex_token = ?, last_login = ?
+        SET username = ?, email = ?, plex_token = ?, server_url = ?, last_login = ?
         WHERE plex_id = ?
       `);
-      stmt.run(plexUser.username, plexUser.email, plexUser.plexToken, Date.now(), plexUser.plexId);
+      stmt.run(plexUser.username, plexUser.email, plexUser.plexToken, plexUser.serverUrl, Date.now(), plexUser.plexId);
       return { ...existing, ...plexUser, lastLogin: Date.now() };
     }
 
     const id = this.generateId();
     const createdAt = Date.now();
     const stmt = this.db.prepare(`
-      INSERT INTO plex_users (id, username, email, plex_token, plex_id, created_at, last_login)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO plex_users (id, username, email, plex_token, plex_id, server_url, created_at, last_login)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(id, plexUser.username, plexUser.email, plexUser.plexToken, plexUser.plexId, createdAt, createdAt);
+    stmt.run(id, plexUser.username, plexUser.email, plexUser.plexToken, plexUser.plexId, plexUser.serverUrl, createdAt, createdAt);
 
     return { id, ...plexUser, isAdmin: false, createdAt, lastLogin: createdAt };
   }
@@ -324,6 +336,7 @@ export class DatabaseService {
       email: row.email,
       plexToken: row.plex_token,
       plexId: row.plex_id,
+      serverUrl: row.server_url,
       isAdmin: row.is_admin === 1,
       createdAt: row.created_at,
       lastLogin: row.last_login,

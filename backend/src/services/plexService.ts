@@ -273,6 +273,75 @@ export class PlexService {
     }
   }
 
+  async getUserServers(userToken: string): Promise<any[]> {
+    try {
+      const response = await axios.get('https://plex.tv/api/v2/resources', {
+        headers: {
+          'X-Plex-Token': userToken,
+          Accept: 'application/json',
+        },
+        params: {
+          includeHttps: 1,
+          includeRelay: 1,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to get user servers', { error });
+      throw new Error('Failed to get user servers');
+    }
+  }
+
+  findBestServerConnection(servers: any[], targetMachineId?: string): string | null {
+    try {
+      // If we have a target machine ID (from admin settings), try to match it
+      let targetServer = null;
+      if (targetMachineId) {
+        targetServer = servers.find(s => s.clientIdentifier === targetMachineId && s.provides === 'server');
+      }
+
+      // Otherwise, just find any server
+      if (!targetServer) {
+        targetServer = servers.find(s => s.provides === 'server');
+      }
+
+      if (!targetServer) {
+        logger.warn('No Plex server found in user resources');
+        return null;
+      }
+
+      logger.info('Found target server', {
+        name: targetServer.name,
+        machineId: targetServer.clientIdentifier,
+        hasConnections: !!targetServer.connections,
+      });
+
+      // Find best connection URL
+      // Prefer: local > relay
+      const connections = targetServer.connections || [];
+
+      // First try local connections
+      const localConn = connections.find((c: any) => c.local);
+      if (localConn?.uri) {
+        logger.info('Using local connection', { uri: localConn.uri });
+        return localConn.uri;
+      }
+
+      // Fall back to any available connection (including relay)
+      const anyConn = connections.find((c: any) => c.uri);
+      if (anyConn?.uri) {
+        logger.info('Using relay/remote connection', { uri: anyConn.uri });
+        return anyConn.uri;
+      }
+
+      logger.warn('No valid connection URI found for server');
+      return null;
+    } catch (error) {
+      logger.error('Error finding best server connection', { error });
+      return null;
+    }
+  }
+
   // Library operations
   async getLibraries(userToken?: string): Promise<PlexLibrary[]> {
     try {

@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
     username: string;
     isAdmin: boolean;
     plexToken?: string;
+    serverUrl?: string;
   };
   authSession?: {
     id: string;
@@ -53,6 +54,7 @@ export const createAuthMiddleware = (db: DatabaseService) => {
           username: plexUser.username,
           isAdmin: plexUser.isAdmin,
           plexToken: plexUser.plexToken,
+          serverUrl: plexUser.serverUrl,
         };
         req.authSession = {
           id: session.id,

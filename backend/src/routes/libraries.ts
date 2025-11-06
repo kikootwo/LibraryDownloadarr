@@ -11,38 +11,46 @@ export const createLibrariesRouter = (db: DatabaseService) => {
   // Get all libraries
   router.get('/', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      // Always use admin token for server access
-      // User's token is just for authentication/identity
+      // Use user's token and server URL if available, otherwise fall back to admin
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
       const adminToken = db.getSetting('plex_token') || undefined;
-      const plexUrl = db.getSetting('plex_url') || '';
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      // Determine which credentials to use
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
 
       logger.info('Getting libraries', {
-        hasUserToken: !!req.user?.plexToken,
+        hasUserToken: !!userToken,
+        hasUserServerUrl: !!userServerUrl,
         hasAdminToken: !!adminToken,
-        hasPlexUrl: !!plexUrl,
-        plexUrl: plexUrl || 'NOT SET',
+        hasAdminUrl: !!adminUrl,
+        usingUserCreds: !!userToken,
+        serverUrl: serverUrl || 'NOT SET',
         userId: req.user?.id,
         username: req.user?.username,
         isAdmin: req.user?.isAdmin
       });
 
-      if (!adminToken || !plexUrl) {
+      if (!token || !serverUrl) {
         return res.status(500).json({ error: 'Plex server not configured' });
       }
 
-      // Make sure PlexService has the current URL and admin token
-      plexService.setServerConnection(plexUrl, adminToken);
+      // Set the server connection with the appropriate URL and token
+      plexService.setServerConnection(serverUrl, token);
 
-      // Pass undefined to use admin token (don't pass user token)
-      const libraries = await plexService.getLibraries(undefined);
+      // Call getLibraries (it will use the connection we just set)
+      const libraries = await plexService.getLibraries(token);
       return res.json({ libraries });
     } catch (error: any) {
       logger.error('Failed to get libraries', {
         error: error.message,
         stack: error.stack,
         hasUserToken: !!req.user?.plexToken,
+        hasUserServerUrl: !!req.user?.serverUrl,
         hasAdminToken: !!db.getSetting('plex_token'),
-        hasPlexUrl: !!db.getSetting('plex_url')
+        hasAdminUrl: !!db.getSetting('plex_url')
       });
       return res.status(500).json({ error: 'Failed to get libraries' });
     }
@@ -53,11 +61,25 @@ export const createLibrariesRouter = (db: DatabaseService) => {
     try {
       const { libraryKey } = req.params;
       const { viewType } = req.query;
-      // Always use admin token for server access
+
+      // Use user's token and server URL if available, otherwise fall back to admin
+      const userToken = req.user?.plexToken;
+      const userServerUrl = req.user?.serverUrl;
       const adminToken = db.getSetting('plex_token') || undefined;
+      const adminUrl = db.getSetting('plex_url') || '';
+
+      const token = userToken || adminToken;
+      const serverUrl = userServerUrl || adminUrl;
+
+      if (!token || !serverUrl) {
+        return res.status(500).json({ error: 'Plex server not configured' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+
       const content = await plexService.getLibraryContent(
         libraryKey,
-        adminToken,
+        token,
         viewType as string | undefined
       );
       return res.json({ content });
