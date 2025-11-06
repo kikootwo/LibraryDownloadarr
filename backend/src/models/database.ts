@@ -83,15 +83,27 @@ export class DatabaseService {
       )
     `);
 
-    // Sessions table
+    // Migrate sessions table if it has the old FOREIGN KEY constraint
+    // Check if sessions table exists with FOREIGN KEY
+    const hasOldSchema = this.db.prepare(`
+      SELECT sql FROM sqlite_master
+      WHERE type='table' AND name='sessions' AND sql LIKE '%FOREIGN KEY%'
+    `).get();
+
+    if (hasOldSchema) {
+      logger.info('Migrating sessions table to remove FOREIGN KEY constraint');
+      // Drop old table and recreate without constraint
+      this.db.exec('DROP TABLE IF EXISTS sessions');
+    }
+
+    // Sessions table (no FOREIGN KEY since we have both admin_users and plex_users)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         token TEXT UNIQUE NOT NULL,
         expires_at INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE
+        created_at INTEGER NOT NULL
       )
     `);
 

@@ -74,35 +74,54 @@ export class PlexService {
     }
   }
 
-  private parseHostname(urlOrHostname: string): string {
+  private parseConnectionDetails(urlOrHostname: string): { hostname: string; port: number; https: boolean } {
     try {
       // If it starts with http:// or https://, parse it
       if (urlOrHostname.startsWith('http://') || urlOrHostname.startsWith('https://')) {
         const url = new URL(urlOrHostname);
-        logger.info('Parsed hostname from URL', {
+        const port = url.port ? parseInt(url.port) : (url.protocol === 'https:' ? 443 : 32400);
+        const https = url.protocol === 'https:';
+
+        logger.info('Parsed connection details from URL', {
           input: urlOrHostname,
-          output: url.host,
-          protocol: url.protocol,
           hostname: url.hostname,
-          port: url.port
+          port: port,
+          https: https
         });
-        return url.host; // This includes port if present (e.g., "host.docker.internal:32400")
+
+        return {
+          hostname: url.hostname,
+          port: port,
+          https: https
+        };
       }
-      // Otherwise assume it's already in host:port format
-      logger.info('Using hostname as-is', { urlOrHostname });
-      return urlOrHostname;
+
+      // Otherwise assume it's in host:port format or just hostname
+      if (urlOrHostname.includes(':')) {
+        const [hostname, portStr] = urlOrHostname.split(':');
+        const port = parseInt(portStr) || 32400;
+        logger.info('Parsed connection details from host:port', { hostname, port });
+        return { hostname, port, https: false };
+      }
+
+      // Just hostname
+      logger.info('Using hostname with default port', { hostname: urlOrHostname, port: 32400 });
+      return { hostname: urlOrHostname, port: 32400, https: false };
     } catch (error) {
-      logger.warn('Failed to parse Plex URL, using as-is', { urlOrHostname, error });
-      return urlOrHostname;
+      logger.warn('Failed to parse Plex URL, using defaults', { urlOrHostname, error });
+      return { hostname: urlOrHostname, port: 32400, https: false };
     }
   }
 
   private initializeClient(urlOrHostname: string, token: string): void {
-    const hostname = this.parseHostname(urlOrHostname);
-    this.plexUrl = urlOrHostname.startsWith('http') ? urlOrHostname : `http://${urlOrHostname}`;
+    const connectionDetails = this.parseConnectionDetails(urlOrHostname);
+    const protocol = connectionDetails.https ? 'https' : 'http';
+    this.plexUrl = `${protocol}://${connectionDetails.hostname}:${connectionDetails.port}`;
 
     this.client = new PlexAPI({
-      hostname,
+      hostname: connectionDetails.hostname,
+      port: connectionDetails.port,
+      https: connectionDetails.https,
       token,
       options: {
         identifier: config.plex.clientIdentifier,
@@ -111,7 +130,11 @@ export class PlexService {
         deviceName: config.plex.device,
       },
     });
-    logger.info('Plex client initialized', { hostname });
+    logger.info('Plex client initialized', {
+      hostname: connectionDetails.hostname,
+      port: connectionDetails.port,
+      https: connectionDetails.https
+    });
   }
 
   setServerConnection(urlOrHostname: string, token: string): void {
@@ -134,9 +157,11 @@ export class PlexService {
 
   async testConnectionWithCredentials(urlOrHostname: string, token: string): Promise<boolean> {
     try {
-      const hostname = this.parseHostname(urlOrHostname);
+      const connectionDetails = this.parseConnectionDetails(urlOrHostname);
       const testClient = new PlexAPI({
-        hostname,
+        hostname: connectionDetails.hostname,
+        port: connectionDetails.port,
+        https: connectionDetails.https,
         token,
         options: {
           identifier: config.plex.clientIdentifier,
@@ -257,8 +282,11 @@ export class PlexService {
       }
 
       // Always create a fresh client for reliability
+      const connectionDetails = this.parseConnectionDetails(url);
       const client = new PlexAPI({
-        hostname: this.parseHostname(url),
+        hostname: connectionDetails.hostname,
+        port: connectionDetails.port,
+        https: connectionDetails.https,
         token: token,
         options: {
           identifier: config.plex.clientIdentifier,
@@ -292,18 +320,24 @@ export class PlexService {
     }
 
     try {
-      const client = userToken
-        ? new PlexAPI({
-            hostname: this.parseHostname(this.plexUrl || config.plex.url),
-            token: userToken,
-            options: {
-              identifier: config.plex.clientIdentifier,
-              product: config.plex.product,
-              version: config.plex.version,
-              deviceName: config.plex.device,
-            },
-          })
-        : this.client;
+      let client: PlexAPI | null = null;
+      if (userToken) {
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        client = new PlexAPI({
+          hostname: connectionDetails.hostname,
+          port: connectionDetails.port,
+          https: connectionDetails.https,
+          token: userToken,
+          options: {
+            identifier: config.plex.clientIdentifier,
+            product: config.plex.product,
+            version: config.plex.version,
+            deviceName: config.plex.device,
+          },
+        });
+      } else {
+        client = this.client;
+      }
 
       if (!client) {
         throw new Error('Plex client not available');
@@ -324,18 +358,24 @@ export class PlexService {
     }
 
     try {
-      const client = userToken
-        ? new PlexAPI({
-            hostname: this.parseHostname(this.plexUrl || config.plex.url),
-            token: userToken,
-            options: {
-              identifier: config.plex.clientIdentifier,
-              product: config.plex.product,
-              version: config.plex.version,
-              deviceName: config.plex.device,
-            },
-          })
-        : this.client;
+      let client: PlexAPI | null = null;
+      if (userToken) {
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        client = new PlexAPI({
+          hostname: connectionDetails.hostname,
+          port: connectionDetails.port,
+          https: connectionDetails.https,
+          token: userToken,
+          options: {
+            identifier: config.plex.clientIdentifier,
+            product: config.plex.product,
+            version: config.plex.version,
+            deviceName: config.plex.device,
+          },
+        });
+      } else {
+        client = this.client;
+      }
 
       if (!client) {
         throw new Error('Plex client not available');
@@ -356,18 +396,24 @@ export class PlexService {
     }
 
     try {
-      const client = userToken
-        ? new PlexAPI({
-            hostname: this.parseHostname(this.plexUrl || config.plex.url),
-            token: userToken,
-            options: {
-              identifier: config.plex.clientIdentifier,
-              product: config.plex.product,
-              version: config.plex.version,
-              deviceName: config.plex.device,
-            },
-          })
-        : this.client;
+      let client: PlexAPI | null = null;
+      if (userToken) {
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        client = new PlexAPI({
+          hostname: connectionDetails.hostname,
+          port: connectionDetails.port,
+          https: connectionDetails.https,
+          token: userToken,
+          options: {
+            identifier: config.plex.clientIdentifier,
+            product: config.plex.product,
+            version: config.plex.version,
+            deviceName: config.plex.device,
+          },
+        });
+      } else {
+        client = this.client;
+      }
 
       if (!client) {
         throw new Error('Plex client not available');
@@ -388,18 +434,24 @@ export class PlexService {
     }
 
     try {
-      const client = userToken
-        ? new PlexAPI({
-            hostname: this.parseHostname(this.plexUrl || config.plex.url),
-            token: userToken,
-            options: {
-              identifier: config.plex.clientIdentifier,
-              product: config.plex.product,
-              version: config.plex.version,
-              deviceName: config.plex.device,
-            },
-          })
-        : this.client;
+      let client: PlexAPI | null = null;
+      if (userToken) {
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        client = new PlexAPI({
+          hostname: connectionDetails.hostname,
+          port: connectionDetails.port,
+          https: connectionDetails.https,
+          token: userToken,
+          options: {
+            identifier: config.plex.clientIdentifier,
+            product: config.plex.product,
+            version: config.plex.version,
+            deviceName: config.plex.device,
+          },
+        });
+      } else {
+        client = this.client;
+      }
 
       if (!client) {
         throw new Error('Plex client not available');

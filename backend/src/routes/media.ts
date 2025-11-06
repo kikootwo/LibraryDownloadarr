@@ -138,17 +138,48 @@ export const createMediaRouter = (db: DatabaseService) => {
   });
 
   // Get thumbnail/poster proxy
-  router.get('/thumb/:ratingKey', authMiddleware, async (req: AuthRequest, res) => {
+  // Support both Authorization header and query parameter token for image requests
+  router.get('/thumb/:ratingKey', async (req: AuthRequest, res) => {
     try {
-      const { path } = req.query;
+      const { path, token } = req.query;
 
       if (!path || typeof path !== 'string') {
         return res.status(400).json({ error: 'Thumbnail path is required' });
       }
 
+      // Check authentication from query parameter first (for <img> tags), then from header
+      let user = req.user;
+      if (!user && token && typeof token === 'string') {
+        const session = db.getSessionByToken(token);
+        if (session) {
+          const adminUser = db.getAdminUserById(session.userId);
+          if (adminUser) {
+            user = {
+              id: adminUser.id,
+              username: adminUser.username,
+              isAdmin: adminUser.isAdmin,
+            };
+          } else {
+            const plexUser = db.getPlexUserById(session.userId);
+            if (plexUser) {
+              user = {
+                id: plexUser.id,
+                username: plexUser.username,
+                isAdmin: plexUser.isAdmin,
+                plexToken: plexUser.plexToken,
+              };
+            }
+          }
+        }
+      }
+
+      if (!user) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
+
       // Use user's Plex token if available (for Plex OAuth users)
       // Otherwise use server's admin token from settings (for admin users)
-      const userToken = req.user?.plexToken || db.getSetting('plex_token');
+      const userToken = user.plexToken || db.getSetting('plex_token');
       if (!userToken) {
         return res.status(401).json({ error: 'Plex token required - configure in settings' });
       }

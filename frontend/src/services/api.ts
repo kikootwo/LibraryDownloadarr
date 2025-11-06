@@ -133,7 +133,8 @@ class ApiClient {
   }
 
   getThumbnailUrl(ratingKey: string, path: string): string {
-    return `/api/media/thumb/${ratingKey}?path=${encodeURIComponent(path)}`;
+    const token = localStorage.getItem('token');
+    return `/api/media/thumb/${ratingKey}?path=${encodeURIComponent(path)}&token=${token}`;
   }
 
   // Settings endpoints
