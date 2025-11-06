@@ -340,7 +340,7 @@ export class PlexService {
     }
   }
 
-  findBestServerConnection(servers: any[], targetMachineId?: string): string | null {
+  findBestServerConnection(servers: any[], targetMachineId?: string): { serverUrl: string | null; accessToken: string | null } {
     try {
       logger.info('Finding best server connection', {
         serversCount: servers.length,
@@ -349,7 +349,8 @@ export class PlexService {
           name: servers[0].name,
           provides: servers[0].provides,
           owned: servers[0].owned,
-          hasConnections: !!servers[0].connections
+          hasConnections: !!servers[0].connections,
+          hasAccessToken: !!servers[0].accessToken
         } : 'none'
       });
 
@@ -382,12 +383,17 @@ export class PlexService {
           totalServers: servers.length,
           accessibleServers: accessibleServers.length
         });
-        return null;
+        return { serverUrl: null, accessToken: null };
       }
+
+      const isSharedServer = targetServer.owned === '0' || targetServer.owned === 0 || targetServer.owned === false;
+      const accessToken = isSharedServer ? targetServer.accessToken : null;
 
       logger.info('Found target server', {
         name: targetServer.name,
         machineId: targetServer.clientIdentifier,
+        isShared: isSharedServer,
+        hasAccessToken: !!accessToken,
         hasConnections: !!targetServer.connections,
         connectionsCount: targetServer.connections?.length || 0
       });
@@ -409,29 +415,29 @@ export class PlexService {
       // First try local connections
       const localConn = connectionsArray.find((c: any) => c.local === 1 || c.local === '1' || c.local === true);
       if (localConn?.uri) {
-        logger.info('Using local connection', { uri: localConn.uri });
-        return localConn.uri;
+        logger.info('Using local connection', { uri: localConn.uri, accessToken: accessToken ? 'present' : 'none' });
+        return { serverUrl: localConn.uri, accessToken };
       }
 
       // Fall back to any available connection (including relay)
       const anyConn = connectionsArray.find((c: any) => c.uri);
       if (anyConn?.uri) {
-        logger.info('Using relay/remote connection', { uri: anyConn.uri });
-        return anyConn.uri;
+        logger.info('Using relay/remote connection', { uri: anyConn.uri, accessToken: accessToken ? 'present' : 'none' });
+        return { serverUrl: anyConn.uri, accessToken };
       }
 
       logger.warn('No valid connection URI found for server', {
         serverName: targetServer.name,
         connectionsCount: connectionsArray.length
       });
-      return null;
+      return { serverUrl: null, accessToken: null };
     } catch (error) {
       logger.error('Error finding best server connection', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined
       });
-      return null;
+      return { serverUrl: null, accessToken: null };
     }
   }
 
