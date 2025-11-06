@@ -805,10 +805,21 @@ export class PlexService {
         'X-Plex-Container-Size': limit,
       });
 
-      return result.MediaContainer.Metadata || [];
-    } catch (error) {
-      logger.error('Failed to get recently added', { error });
-      throw new Error('Failed to get recently added');
+      const metadata = result.MediaContainer.Metadata || [];
+
+      logger.info('Recently added query completed', {
+        requestedLimit: limit,
+        returnedCount: metadata.length,
+        mediaTypes: metadata.map((m: any) => m.type).filter((v: any, i: any, a: any) => a.indexOf(v) === i)
+      });
+
+      return metadata;
+    } catch (error: any) {
+      logger.error('Failed to get recently added', {
+        error: error.message,
+        stack: error.stack
+      });
+      throw error;
     }
   }
 

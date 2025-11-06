@@ -20,32 +20,14 @@ export const Dashboard: React.FC = () => {
       return;
     }
 
-    // Redirect non-admin users to the first library
-    if (!user.isAdmin) {
-      redirectToFirstLibrary();
-    } else {
-      loadDashboard();
-    }
+    // Load dashboard for all users
+    loadDashboard();
   }, [user]);
-
-  const redirectToFirstLibrary = async () => {
-    try {
-      const libraries = await api.getLibraries();
-      if (libraries.length > 0) {
-        navigate(`/library/${libraries[0].key}`, { replace: true });
-      } else {
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Failed to load libraries', error);
-      setIsLoading(false);
-    }
-  };
 
   const loadDashboard = async () => {
     try {
       const [media, downloadStats] = await Promise.all([
-        api.getRecentlyAdded(12),
+        api.getRecentlyAdded(24),
         api.getDownloadStats().catch(() => null),
       ]);
       setRecentlyAdded(media);
@@ -72,39 +54,41 @@ export const Dashboard: React.FC = () => {
         <Sidebar />
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6">Dashboard</h2>
+            <h2 className="text-3xl font-bold mb-6">Home</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="card p-6">
-                <div className="text-4xl mb-4">🎬</div>
-                <h3 className="text-xl font-semibold mb-2">Browse Libraries</h3>
-                <p className="text-gray-400 text-sm">
-                  Access all your Plex libraries with full metadata and artwork
-                </p>
-              </div>
+            {user?.isAdmin && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="card p-6">
+                  <div className="text-4xl mb-4">🎬</div>
+                  <h3 className="text-xl font-semibold mb-2">Browse Libraries</h3>
+                  <p className="text-gray-400 text-sm">
+                    Access all your Plex libraries with full metadata and artwork
+                  </p>
+                </div>
 
-              <div className="card p-6 cursor-pointer hover:border-primary-500 transition-colors" onClick={() => navigate('/admin/download-history')}>
-                <div className="text-4xl mb-4">📊</div>
-                <h3 className="text-xl font-semibold mb-2">Downloads</h3>
-                {stats ? (
-                  <div className="text-sm space-y-1">
-                    <p className="text-gray-400">Total: {stats.count || 0}</p>
-                    <p className="text-gray-400">Size: {formatBytes(stats.total_size)}</p>
-                    <p className="text-primary-400 text-xs mt-2">Click to view history →</p>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-sm">Track your download history and stats</p>
-                )}
-              </div>
+                <div className="card p-6 cursor-pointer hover:border-primary-500 transition-colors" onClick={() => navigate('/admin/download-history')}>
+                  <div className="text-4xl mb-4">📊</div>
+                  <h3 className="text-xl font-semibold mb-2">Downloads</h3>
+                  {stats ? (
+                    <div className="text-sm space-y-1">
+                      <p className="text-gray-400">Total: {stats.count || 0}</p>
+                      <p className="text-gray-400">Size: {formatBytes(stats.total_size)}</p>
+                      <p className="text-primary-400 text-xs mt-2">Click to view history →</p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm">Track your download history and stats</p>
+                  )}
+                </div>
 
-              <div className="card p-6 cursor-pointer hover:border-primary-500 transition-colors" onClick={() => navigate('/settings')}>
-                <div className="text-4xl mb-4">⚙️</div>
-                <h3 className="text-xl font-semibold mb-2">Settings</h3>
-                <p className="text-gray-400 text-sm">
-                  Configure your Plex server connection
-                </p>
+                <div className="card p-6 cursor-pointer hover:border-primary-500 transition-colors" onClick={() => navigate('/settings')}>
+                  <div className="text-4xl mb-4">⚙️</div>
+                  <h3 className="text-xl font-semibold mb-2">Settings</h3>
+                  <p className="text-gray-400 text-sm">
+                    Configure your Plex server connection
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {isLoading ? (
               <div className="text-center text-gray-400 py-12">Loading...</div>

@@ -40,6 +40,13 @@ export const MediaDetail: React.FC = () => {
         setSeasons(seasonsData);
       }
 
+      // If it's a season (clicked directly from recently added), load episodes
+      if (metadata.type === 'season') {
+        const episodesData = await api.getEpisodes(ratingKey);
+        setEpisodesBySeason({ [ratingKey]: episodesData });
+        setExpandedSeasons({ [ratingKey]: true }); // Auto-expand the season
+      }
+
       // If it's an album (audiobook), load tracks
       if (metadata.type === 'album') {
         const tracksData = await api.getTracks(ratingKey);
@@ -332,6 +339,65 @@ export const MediaDetail: React.FC = () => {
                         </div>
                       ) : (
                         <div className="text-gray-400">No tracks available</div>
+                      )
+                    ) : media.type === 'season' && ratingKey ? (
+                      // Season (clicked directly) - Show episodes
+                      episodesBySeason[ratingKey] && episodesBySeason[ratingKey].length > 0 ? (
+                        <div className="space-y-2">
+                          {episodesBySeason[ratingKey].map((episode: MediaItem) => (
+                            <div
+                              key={episode.ratingKey}
+                              className="card p-3 flex items-center justify-between"
+                            >
+                              <div className="flex items-center space-x-3">
+                                {episode.thumb && (
+                                  <img
+                                    src={api.getThumbnailUrl(episode.ratingKey, episode.thumb)}
+                                    alt={episode.title}
+                                    className="w-24 h-16 object-cover rounded"
+                                  />
+                                )}
+                                <div>
+                                  <div className="font-medium">{episode.title}</div>
+                                  <div className="text-sm text-gray-400">
+                                    {episode.duration && formatDuration(episode.duration)}
+                                    {episode.Media?.[0]?.Part?.[0]?.size && (
+                                      <> • {formatFileSize(episode.Media[0].Part[0].size)}</>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {episode.Media?.[0]?.Part?.[0] && (
+                                <div className="flex flex-col items-end gap-2">
+                                  <button
+                                    onClick={() =>
+                                      handleDownload(
+                                        episode.Media![0].Part[0].key,
+                                        episode.Media![0].Part[0].file.split('/').pop() || 'download'
+                                      )
+                                    }
+                                    disabled={downloadingKeys.has(episode.Media![0].Part[0].key)}
+                                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {downloadingKeys.has(episode.Media![0].Part[0].key)
+                                      ? `${downloadProgress[episode.Media![0].Part[0].key] || 0}%`
+                                      : 'Download'}
+                                  </button>
+                                  {downloadingKeys.has(episode.Media![0].Part[0].key) && (
+                                    <div className="w-32 h-2 bg-dark-200 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-gradient-to-r from-primary-500 to-primary-400 transition-all duration-300 ease-out"
+                                        style={{ width: `${downloadProgress[episode.Media![0].Part[0].key] || 0}%` }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-gray-400">No episodes available</div>
                       )
                     ) : media.type === 'show' ? (
                       // TV Show - Show seasons and episodes
