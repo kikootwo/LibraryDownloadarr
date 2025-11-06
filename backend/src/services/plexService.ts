@@ -747,12 +747,26 @@ export class PlexService {
         throw new Error('Plex client not available');
       }
 
-      const result = await client.query('/search', { query });
+      logger.info('Executing Plex search query', { query, endpoint: '/search' });
+
+      // The plex-api library query method expects parameters as query string params
+      const result = await client.query('/search?query=' + encodeURIComponent(query));
+
+      logger.info('Search query completed', {
+        hasResults: !!result?.MediaContainer?.Metadata,
+        resultCount: result?.MediaContainer?.Metadata?.length || 0
+      });
 
       return result.MediaContainer.Metadata || [];
-    } catch (error) {
-      logger.error('Failed to search', { error });
-      throw new Error('Failed to search');
+    } catch (error: any) {
+      logger.error('Failed to search', {
+        error: error.message,
+        stack: error.stack,
+        query,
+        hasClient: !!this.client,
+        hasPlexUrl: !!this.plexUrl
+      });
+      throw error;
     }
   }
 
