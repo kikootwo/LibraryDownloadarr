@@ -40,25 +40,34 @@ export const createMediaRouter = (db: DatabaseService) => {
   };
 
   // Helper function to get user credentials with proper fallback
+  // SECURITY: Always use admin's server URL, never user-specific URLs
   const getUserCredentials = (req: AuthRequest): { token: string | undefined; serverUrl: string; error?: string } => {
     const userToken = req.user?.plexToken;
-    const userServerUrl = req.user?.serverUrl;
     const isAdmin = req.user?.isAdmin;
     const adminToken = db.getSetting('plex_token') || undefined;
     const adminUrl = db.getSetting('plex_url') || '';
 
-    // If user has both their own token and serverUrl, use them
-    if (userToken && userServerUrl) {
-      return { token: userToken, serverUrl: userServerUrl };
+    // All users (including admins) must use admin's configured server URL
+    // This prevents users from using the app to download from arbitrary Plex servers
+    if (!adminUrl) {
+      return {
+        token: undefined,
+        serverUrl: '',
+        error: 'Plex server not configured. Please contact administrator.'
+      };
     }
 
-    // Only admins can fall back to admin credentials
-    // Non-admin users MUST have their own credentials
-    if (isAdmin) {
+    // If user has their own token, use it with admin's server URL
+    if (userToken) {
+      return { token: userToken, serverUrl: adminUrl };
+    }
+
+    // Admin can fall back to admin token (for setup/testing)
+    if (isAdmin && adminToken) {
       return { token: adminToken, serverUrl: adminUrl };
     }
 
-    // Non-admin user without their own credentials = no access
+    // User without token = no access
     return {
       token: undefined,
       serverUrl: '',

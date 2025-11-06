@@ -8,63 +8,67 @@ export const createLibrariesRouter = (db: DatabaseService) => {
   const router = Router();
   const authMiddleware = createAuthMiddleware(db);
 
+  // Helper function to get user credentials
+  // SECURITY: Always use admin's server URL, never user-specific URLs
+  const getUserCredentials = (req: AuthRequest): { token: string | undefined; serverUrl: string; error?: string } => {
+    const userToken = req.user?.plexToken;
+    const isAdmin = req.user?.isAdmin;
+    const adminToken = db.getSetting('plex_token') || undefined;
+    const adminUrl = db.getSetting('plex_url') || '';
+
+    // All users must use admin's configured server URL
+    if (!adminUrl) {
+      return {
+        token: undefined,
+        serverUrl: '',
+        error: 'Plex server not configured. Please contact administrator.'
+      };
+    }
+
+    // If user has their own token, use it with admin's server URL
+    if (userToken) {
+      return { token: userToken, serverUrl: adminUrl };
+    }
+
+    // Admin can fall back to admin token
+    if (isAdmin && adminToken) {
+      return { token: adminToken, serverUrl: adminUrl };
+    }
+
+    // User without token = no access
+    return {
+      token: undefined,
+      serverUrl: '',
+      error: 'Access denied. Please log out and log in again to configure your Plex access.'
+    };
+  };
+
   // Get all libraries
   router.get('/', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const userToken = req.user?.plexToken;
-      const userServerUrl = req.user?.serverUrl;
-      const isAdmin = req.user?.isAdmin;
-      const adminToken = db.getSetting('plex_token') || undefined;
-      const adminUrl = db.getSetting('plex_url') || '';
+      const { token, serverUrl, error } = getUserCredentials(req);
 
-      let token: string | undefined;
-      let serverUrl: string;
-
-      // If user has both their own token and serverUrl, use them
-      if (userToken && userServerUrl) {
-        token = userToken;
-        serverUrl = userServerUrl;
-      } else if (isAdmin) {
-        // Only admins can fall back to admin credentials
-        token = adminToken;
-        serverUrl = adminUrl;
-      } else {
-        // Non-admin user without their own credentials = no access
-        return res.status(403).json({
-          error: 'Access denied. Please log out and log in again to configure your Plex access.'
-        });
+      if (error) {
+        return res.status(403).json({ error });
       }
-
-      logger.info('Getting libraries', {
-        hasUserToken: !!userToken,
-        hasUserServerUrl: !!userServerUrl,
-        hasAdminToken: !!adminToken,
-        hasAdminUrl: !!adminUrl,
-        usingUserCreds: !!(userToken && userServerUrl),
-        serverUrl: serverUrl || 'NOT SET',
-        userId: req.user?.id,
-        username: req.user?.username,
-        isAdmin: req.user?.isAdmin
-      });
 
       if (!token || !serverUrl) {
         return res.status(500).json({ error: 'Plex server not configured' });
       }
 
-      // Set the server connection with the appropriate URL and token
-      plexService.setServerConnection(serverUrl, token);
+      logger.info('Getting libraries', {
+        userId: req.user?.id,
+        username: req.user?.username,
+        isAdmin: req.user?.isAdmin
+      });
 
-      // Call getLibraries (it will use the connection we just set)
+      plexService.setServerConnection(serverUrl, token);
       const libraries = await plexService.getLibraries(token);
       return res.json({ libraries });
     } catch (error: any) {
       logger.error('Failed to get libraries', {
         error: error.message,
-        stack: error.stack,
-        hasUserToken: !!req.user?.plexToken,
-        hasUserServerUrl: !!req.user?.serverUrl,
-        hasAdminToken: !!db.getSetting('plex_token'),
-        hasAdminUrl: !!db.getSetting('plex_url')
+        stack: error.stack
       });
       return res.status(500).json({ error: 'Failed to get libraries' });
     }
@@ -76,25 +80,10 @@ export const createLibrariesRouter = (db: DatabaseService) => {
       const { libraryKey } = req.params;
       const { viewType } = req.query;
 
-      const userToken = req.user?.plexToken;
-      const userServerUrl = req.user?.serverUrl;
-      const isAdmin = req.user?.isAdmin;
-      const adminToken = db.getSetting('plex_token') || undefined;
-      const adminUrl = db.getSetting('plex_url') || '';
+      const { token, serverUrl, error } = getUserCredentials(req);
 
-      let token: string | undefined;
-      let serverUrl: string;
-
-      if (userToken && userServerUrl) {
-        token = userToken;
-        serverUrl = userServerUrl;
-      } else if (isAdmin) {
-        token = adminToken;
-        serverUrl = adminUrl;
-      } else {
-        return res.status(403).json({
-          error: 'Access denied. Please log out and log in again to configure your Plex access.'
-        });
+      if (error) {
+        return res.status(403).json({ error });
       }
 
       if (!token || !serverUrl) {

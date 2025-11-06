@@ -72,4 +72,5 @@ export interface PlexPin {
 export interface Settings {
   plexUrl: string;
   hasPlexToken: boolean;
+  plexMachineId?: string;
 }

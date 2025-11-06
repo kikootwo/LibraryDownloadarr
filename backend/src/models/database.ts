@@ -191,22 +191,24 @@ export class DatabaseService {
     const existing = this.getPlexUserByPlexId(plexUser.plexId!);
 
     if (existing) {
+      // SECURITY: No longer store serverUrl - always use admin's configured server
       const stmt = this.db.prepare(`
         UPDATE plex_users
-        SET username = ?, email = ?, plex_token = ?, server_url = ?, last_login = ?
+        SET username = ?, email = ?, plex_token = ?, server_url = NULL, last_login = ?
         WHERE plex_id = ?
       `);
-      stmt.run(plexUser.username, plexUser.email, plexUser.plexToken, plexUser.serverUrl, Date.now(), plexUser.plexId);
-      return { ...existing, ...plexUser, lastLogin: Date.now() };
+      stmt.run(plexUser.username, plexUser.email, plexUser.plexToken, Date.now(), plexUser.plexId);
+      return { ...existing, ...plexUser, serverUrl: undefined, lastLogin: Date.now() };
     }
 
     const id = this.generateId();
     const createdAt = Date.now();
+    // SECURITY: No longer store serverUrl - always use admin's configured server
     const stmt = this.db.prepare(`
       INSERT INTO plex_users (id, username, email, plex_token, plex_id, server_url, created_at, last_login)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
     `);
-    stmt.run(id, plexUser.username, plexUser.email, plexUser.plexToken, plexUser.plexId, plexUser.serverUrl, createdAt, createdAt);
+    stmt.run(id, plexUser.username, plexUser.email, plexUser.plexToken, plexUser.plexId, createdAt, createdAt);
 
     return { id, ...plexUser, isAdmin: false, createdAt, lastLogin: createdAt };
   }

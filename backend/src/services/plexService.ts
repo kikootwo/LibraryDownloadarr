@@ -450,6 +450,38 @@ export class PlexService {
     }
   }
 
+  // Get server identity (machine identifier, friendly name, etc.)
+  async getServerIdentity(token: string): Promise<{ machineIdentifier: string; friendlyName: string } | null> {
+    try {
+      const url = this.plexUrl || config.plex.url;
+
+      if (!url) {
+        logger.error('No Plex URL configured for getServerIdentity');
+        return null;
+      }
+
+      const response = await axios.get(`${url}/identity`, {
+        headers: {
+          'X-Plex-Token': token,
+          'Accept': 'application/json',
+        },
+      });
+
+      const data = response.data?.MediaContainer;
+      if (data?.machineIdentifier) {
+        return {
+          machineIdentifier: data.machineIdentifier,
+          friendlyName: data.friendlyName || 'Unknown Server'
+        };
+      }
+
+      return null;
+    } catch (error) {
+      logger.error('Failed to get server identity', { error });
+      return null;
+    }
+  }
+
   // Library operations
   async getLibraries(userToken?: string): Promise<PlexLibrary[]> {
     try {

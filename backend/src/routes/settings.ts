@@ -14,11 +14,13 @@ export const createSettingsRouter = (db: DatabaseService) => {
     try {
       const plexUrl = db.getSetting('plex_url') || '';
       const plexToken = db.getSetting('plex_token') || '';
+      const plexMachineId = db.getSetting('plex_machine_id') || '';
 
       return res.json({
         settings: {
           plexUrl,
           hasPlexToken: !!plexToken,
+          plexMachineId,
         },
       });
     } catch (error) {
@@ -71,6 +73,41 @@ export const createSettingsRouter = (db: DatabaseService) => {
     } catch (error) {
       logger.error('Connection test failed', { error });
       return res.status(500).json({ error: 'Connection test failed', connected: false });
+    }
+  });
+
+  // Fetch server machine ID from Plex server (admin only)
+  router.post('/fetch-machine-id', authMiddleware, adminMiddleware, async (_req: AuthRequest, res) => {
+    try {
+      const plexUrl = db.getSetting('plex_url') || '';
+      const plexToken = db.getSetting('plex_token') || '';
+
+      if (!plexUrl || !plexToken) {
+        return res.status(400).json({ error: 'Plex URL and token must be configured first' });
+      }
+
+      // Fetch server identity from Plex
+      const serverInfo = await plexService.getServerIdentity(plexToken);
+
+      if (!serverInfo || !serverInfo.machineIdentifier) {
+        return res.status(500).json({ error: 'Failed to fetch server machine ID' });
+      }
+
+      // Auto-save the machine ID
+      db.setSetting('plex_machine_id', serverInfo.machineIdentifier);
+
+      logger.info('Fetched and saved server machine ID', {
+        machineId: serverInfo.machineIdentifier,
+        serverName: serverInfo.friendlyName
+      });
+
+      return res.json({
+        machineId: serverInfo.machineIdentifier,
+        serverName: serverInfo.friendlyName
+      });
+    } catch (error) {
+      logger.error('Failed to fetch machine ID', { error });
+      return res.status(500).json({ error: 'Failed to fetch server machine ID' });
     }
   });
 

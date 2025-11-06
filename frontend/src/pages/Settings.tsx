@@ -23,6 +23,9 @@ export const Settings: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Machine ID state
+  const [isFetchingMachineId, setIsFetchingMachineId] = useState(false);
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -99,6 +102,27 @@ export const Settings: React.FC = () => {
       setMessage({ type: 'error', text: 'Failed to test connection' });
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const handleFetchMachineId = async () => {
+    setIsFetchingMachineId(true);
+    setMessage(null);
+
+    try {
+      const result = await api.fetchMachineId();
+      setMessage({
+        type: 'success',
+        text: `Machine ID fetched successfully: ${result.machineId} (${result.serverName})`
+      });
+      await loadSettings(); // Reload to show new machine ID
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.error || 'Failed to fetch machine ID. Make sure URL and token are configured and saved first.'
+      });
+    } finally {
+      setIsFetchingMachineId(false);
     }
   };
 
@@ -204,6 +228,32 @@ export const Settings: React.FC = () => {
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         Your Plex authentication token (admin token for server access)
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Server Machine ID</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          className="input flex-1"
+                          placeholder="Not configured"
+                          value={settings.plexMachineId || ''}
+                          readOnly
+                        />
+                        <button
+                          type="button"
+                          onClick={handleFetchMachineId}
+                          disabled={isFetchingMachineId || !settings.plexUrl || !settings.hasPlexToken}
+                          className="btn-secondary whitespace-nowrap"
+                        >
+                          {isFetchingMachineId ? 'Fetching...' : 'Fetch ID'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        <span className="text-orange-400 font-semibold">SECURITY:</span> This machine ID identifies YOUR specific Plex server.
+                        Users logging in via Plex OAuth will only be granted access if they have permission to this specific server.
+                        This prevents unauthorized users from using this app to download from their own Plex servers.
                       </p>
                     </div>
                   </div>

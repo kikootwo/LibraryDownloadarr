@@ -136,52 +136,62 @@ export const createAuthRouter = (db: DatabaseService) => {
 
       logger.info('Plex PIN authorized', { username: authResponse.user.username });
 
-      // Get user's accessible Plex servers and find best connection URL
-      let serverUrl: string | undefined;
-      let serverAccessToken: string | undefined;
+      // SECURITY: Validate user has access to admin's configured Plex server
+      const adminServerUrl = db.getSetting('plex_url');
+      const adminMachineId = db.getSetting('plex_machine_id');
+
+      if (!adminServerUrl) {
+        logger.error('Admin Plex server not configured');
+        return res.status(500).json({ error: 'Plex server not configured. Please contact administrator.' });
+      }
+
+      if (!adminMachineId) {
+        logger.error('Admin Plex machine ID not configured');
+        return res.status(500).json({ error: 'Plex server machine ID not configured. Please contact administrator.' });
+      }
+
+      // Get user's accessible servers and validate they have access to admin's server
+      let userToken: string;
       try {
         const userServers = await plexService.getUserServers(authResponse.authToken);
-        const adminMachineId = db.getSetting('plex_machine_id'); // Optional: match specific server
         const connection = plexService.findBestServerConnection(userServers, adminMachineId);
 
-        serverUrl = connection.serverUrl || undefined;
-        serverAccessToken = connection.accessToken || undefined;
-
-        if (!serverUrl) {
-          logger.warn('Could not find accessible Plex server for user', {
+        if (!connection.serverUrl) {
+          logger.warn('User does not have access to admin Plex server', {
             username: authResponse.user.username,
-            serversCount: userServers.length,
+            adminMachineId,
+            userServersCount: userServers.length
+          });
+          return res.status(403).json({
+            error: 'Access denied. You do not have access to this Plex server.'
           });
         }
 
-        logger.info('Server connection found for user', {
+        // For shared servers, use the server's accessToken; for owned servers, use the user's auth token
+        userToken = connection.accessToken || authResponse.authToken;
+
+        logger.info('User validated for admin server', {
           username: authResponse.user.username,
-          hasServerUrl: !!serverUrl,
-          hasAccessToken: !!serverAccessToken,
-          isSharedServer: !!serverAccessToken
+          hasAccessToken: !!connection.accessToken,
+          isSharedServer: !!connection.accessToken
         });
       } catch (error) {
-        logger.error('Failed to get user servers', { error });
-        // Continue without serverUrl - will fall back to admin URL if needed
+        logger.error('Failed to validate user server access', { error });
+        return res.status(500).json({ error: 'Failed to validate server access' });
       }
 
-      // Create or update plex user
-      // For shared servers, use the server's accessToken; for owned servers, use the user's auth token
+      // Create or update plex user (no serverUrl stored - always use admin's)
       const plexUser = db.createOrUpdatePlexUser({
         username: authResponse.user.username,
         email: authResponse.user.email,
-        plexToken: serverAccessToken || authResponse.authToken,
+        plexToken: userToken,
         plexId: authResponse.user.uuid,
-        serverUrl,
       });
 
       // Create session
       const session = db.createSession(plexUser.id);
 
-      logger.info(`Plex user authenticated: ${plexUser.username}`, {
-        hasServerUrl: !!serverUrl,
-        serverUrl: serverUrl,
-      });
+      logger.info(`Plex user authenticated: ${plexUser.username}`);
 
       return res.json({
         user: {

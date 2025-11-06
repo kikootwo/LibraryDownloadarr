@@ -184,6 +184,11 @@ class ApiClient {
     return response.data.connected;
   }
 
+  async fetchMachineId(): Promise<{ machineId: string; serverName: string }> {
+    const response = await this.client.post<{ machineId: string; serverName: string }>('/settings/fetch-machine-id');
+    return response.data;
+  }
+
   // Logs endpoints
   async getLogs(params: {
     level?: string;
