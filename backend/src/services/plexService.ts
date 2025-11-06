@@ -314,6 +314,37 @@ export class PlexService {
     }
   }
 
+  async getRecentlyAdded(userToken?: string, limit: number = 20): Promise<PlexMedia[]> {
+    if (!this.client) {
+      throw new Error('Plex client not initialized');
+    }
+
+    try {
+      const client = userToken
+        ? new PlexAPI({
+            hostname: config.plex.url,
+            token: userToken,
+            options: {
+              identifier: config.plex.clientIdentifier,
+              product: config.plex.product,
+              version: config.plex.version,
+              deviceName: config.plex.device,
+            },
+          })
+        : this.client;
+
+      const result = await client.query('/library/recentlyAdded', {
+        'X-Plex-Container-Start': 0,
+        'X-Plex-Container-Size': limit,
+      });
+
+      return result.MediaContainer.Metadata || [];
+    } catch (error) {
+      logger.error('Failed to get recently added', { error });
+      throw new Error('Failed to get recently added');
+    }
+  }
+
   getDownloadUrl(partKey: string, token: string): string {
     const baseUrl = this.plexUrl || config.plex.url;
     if (!baseUrl) {

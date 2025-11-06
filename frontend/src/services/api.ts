@@ -94,6 +94,13 @@ class ApiClient {
   }
 
   // Media endpoints
+  async getRecentlyAdded(limit: number = 20): Promise<MediaItem[]> {
+    const response = await this.client.get<{ media: MediaItem[] }>('/media/recently-added', {
+      params: { limit },
+    });
+    return response.data.media;
+  }
+
   async searchMedia(query: string): Promise<MediaItem[]> {
     const response = await this.client.get<{ results: MediaItem[] }>('/media/search', {
       params: { q: query },
@@ -104,6 +111,18 @@ class ApiClient {
   async getMediaMetadata(ratingKey: string): Promise<MediaItem> {
     const response = await this.client.get<{ metadata: MediaItem }>(`/media/${ratingKey}`);
     return response.data.metadata;
+  }
+
+  async getDownloadHistory(limit: number = 50): Promise<any[]> {
+    const response = await this.client.get<{ history: any[] }>('/media/download-history', {
+      params: { limit },
+    });
+    return response.data.history;
+  }
+
+  async getDownloadStats(): Promise<any> {
+    const response = await this.client.get<{ stats: any }>('/media/download-stats');
+    return response.data.stats;
   }
 
   getDownloadUrl(ratingKey: string, partKey: string): string {

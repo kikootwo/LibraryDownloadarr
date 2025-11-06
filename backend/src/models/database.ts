@@ -254,6 +254,42 @@ export class DatabaseService {
     stmt.run(id, userId, mediaTitle, mediaKey, fileSize, Date.now());
   }
 
+  getDownloadHistory(userId: string, limit: number = 50): any[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM download_logs
+      WHERE user_id = ?
+      ORDER BY downloaded_at DESC
+      LIMIT ?
+    `);
+    return stmt.all(userId, limit) as any[];
+  }
+
+  getAllDownloadHistory(limit: number = 100): any[] {
+    const stmt = this.db.prepare(`
+      SELECT dl.*,
+             COALESCE(au.username, pu.username) as username
+      FROM download_logs dl
+      LEFT JOIN admin_users au ON dl.user_id = au.id
+      LEFT JOIN plex_users pu ON dl.user_id = pu.id
+      ORDER BY dl.downloaded_at DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit) as any[];
+  }
+
+  getDownloadStats(userId?: string): any {
+    let query = 'SELECT COUNT(*) as count, SUM(file_size) as total_size FROM download_logs';
+    const params: any[] = [];
+
+    if (userId) {
+      query += ' WHERE user_id = ?';
+      params.push(userId);
+    }
+
+    const stmt = this.db.prepare(query);
+    return stmt.get(...params);
+  }
+
   // Utility methods
   private mapAdminUser(row: any): AdminUser {
     return {

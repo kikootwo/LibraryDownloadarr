@@ -9,6 +9,42 @@ export const createMediaRouter = (db: DatabaseService) => {
   const router = Router();
   const authMiddleware = createAuthMiddleware(db);
 
+  // Get recently added media
+  router.get('/recently-added', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const userToken = req.user?.plexToken;
+      const media = await plexService.getRecentlyAdded(userToken, limit);
+      return res.json({ media });
+    } catch (error) {
+      logger.error('Failed to get recently added', { error });
+      return res.status(500).json({ error: 'Failed to get recently added media' });
+    }
+  });
+
+  // Get download history
+  router.get('/download-history', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const history = db.getDownloadHistory(req.user!.id, limit);
+      return res.json({ history });
+    } catch (error) {
+      logger.error('Failed to get download history', { error });
+      return res.status(500).json({ error: 'Failed to get download history' });
+    }
+  });
+
+  // Get download stats
+  router.get('/download-stats', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const stats = db.getDownloadStats(req.user!.id);
+      return res.json({ stats });
+    } catch (error) {
+      logger.error('Failed to get download stats', { error });
+      return res.status(500).json({ error: 'Failed to get download stats' });
+    }
+  });
+
   // Search media
   router.get('/search', authMiddleware, async (req: AuthRequest, res) => {
     try {
