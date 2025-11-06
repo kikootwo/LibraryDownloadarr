@@ -15,8 +15,13 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
 
   useEffect(() => {
+    // Wait for user to be loaded
+    if (!user) {
+      return;
+    }
+
     // Redirect non-admin users to the first library
-    if (user && !user.isAdmin) {
+    if (!user.isAdmin) {
       redirectToFirstLibrary();
     } else {
       loadDashboard();

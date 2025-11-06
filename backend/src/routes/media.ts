@@ -24,7 +24,7 @@ export const createMediaRouter = (db: DatabaseService) => {
     }
   });
 
-  // Get download history
+  // Get download history (user's own downloads)
   router.get('/download-history', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
@@ -36,10 +36,28 @@ export const createMediaRouter = (db: DatabaseService) => {
     }
   });
 
-  // Get download stats
-  router.get('/download-stats', authMiddleware, async (req: AuthRequest, res) => {
+  // Get all download history (admin only - shows all users' downloads)
+  router.get('/download-history/all', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const stats = db.getDownloadStats(req.user!.id);
+      // Only admins can view all downloads
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const history = db.getAllDownloadHistory(limit);
+      return res.json({ history });
+    } catch (error) {
+      logger.error('Failed to get all download history', { error });
+      return res.status(500).json({ error: 'Failed to get all download history' });
+    }
+  });
+
+  // Get download stats (global for all users)
+  router.get('/download-stats', authMiddleware, async (_req: AuthRequest, res) => {
+    try {
+      // Get stats for all users (don't pass userId)
+      const stats = db.getDownloadStats();
       return res.json({ stats });
     } catch (error) {
       logger.error('Failed to get download stats', { error });
