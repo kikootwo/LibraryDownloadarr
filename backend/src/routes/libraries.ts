@@ -11,25 +11,28 @@ export const createLibrariesRouter = (db: DatabaseService) => {
   // Get all libraries
   router.get('/', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      // Use user's token and server URL if BOTH are available, otherwise fall back to admin
       const userToken = req.user?.plexToken;
       const userServerUrl = req.user?.serverUrl;
+      const isAdmin = req.user?.isAdmin;
       const adminToken = db.getSetting('plex_token') || undefined;
       const adminUrl = db.getSetting('plex_url') || '';
 
-      // Only use user credentials if we have BOTH token and URL
-      // Otherwise fall back to admin (don't mix user token with admin URL)
       let token: string | undefined;
       let serverUrl: string;
 
+      // If user has both their own token and serverUrl, use them
       if (userToken && userServerUrl) {
-        // User has their own Plex connection
         token = userToken;
         serverUrl = userServerUrl;
-      } else {
-        // Fall back to admin credentials
+      } else if (isAdmin) {
+        // Only admins can fall back to admin credentials
         token = adminToken;
         serverUrl = adminUrl;
+      } else {
+        // Non-admin user without their own credentials = no access
+        return res.status(403).json({
+          error: 'Access denied. Please log out and log in again to configure your Plex access.'
+        });
       }
 
       logger.info('Getting libraries', {
@@ -73,9 +76,9 @@ export const createLibrariesRouter = (db: DatabaseService) => {
       const { libraryKey } = req.params;
       const { viewType } = req.query;
 
-      // Use user's token and server URL if BOTH are available, otherwise fall back to admin
       const userToken = req.user?.plexToken;
       const userServerUrl = req.user?.serverUrl;
+      const isAdmin = req.user?.isAdmin;
       const adminToken = db.getSetting('plex_token') || undefined;
       const adminUrl = db.getSetting('plex_url') || '';
 
@@ -85,9 +88,13 @@ export const createLibrariesRouter = (db: DatabaseService) => {
       if (userToken && userServerUrl) {
         token = userToken;
         serverUrl = userServerUrl;
-      } else {
+      } else if (isAdmin) {
         token = adminToken;
         serverUrl = adminUrl;
+      } else {
+        return res.status(403).json({
+          error: 'Access denied. Please log out and log in again to configure your Plex access.'
+        });
       }
 
       if (!token || !serverUrl) {
