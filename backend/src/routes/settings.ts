@@ -10,7 +10,7 @@ export const createSettingsRouter = (db: DatabaseService) => {
   const adminMiddleware = createAdminMiddleware();
 
   // Get settings (admin only)
-  router.get('/', authMiddleware, adminMiddleware, (req: AuthRequest, res) => {
+  router.get('/', authMiddleware, adminMiddleware, (_req: AuthRequest, res) => {
     try {
       const plexUrl = db.getSetting('plex_url') || '';
       const plexToken = db.getSetting('plex_token') || '';
@@ -56,7 +56,7 @@ export const createSettingsRouter = (db: DatabaseService) => {
   });
 
   // Test Plex connection (admin only)
-  router.post('/test-connection', authMiddleware, adminMiddleware, async (req: AuthRequest, res) => {
+  router.post('/test-connection', authMiddleware, adminMiddleware, async (_req: AuthRequest, res) => {
     try {
       const isConnected = await plexService.testConnection();
       return res.json({ connected: isConnected });

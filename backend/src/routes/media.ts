@@ -83,11 +83,13 @@ export const createMediaRouter = (db: DatabaseService) => {
       response.data.pipe(res);
 
       logger.info(`Download started for ${metadata.title} by user ${req.user?.username}`);
+      return;
     } catch (error) {
       logger.error('Download failed', { error });
       if (!res.headersSent) {
         return res.status(500).json({ error: 'Download failed' });
       }
+      return;
     }
   });
 
@@ -118,11 +120,13 @@ export const createMediaRouter = (db: DatabaseService) => {
       }
 
       response.data.pipe(res);
+      return;
     } catch (error) {
       logger.error('Thumbnail proxy failed', { error });
       if (!res.headersSent) {
         return res.status(500).json({ error: 'Failed to load thumbnail' });
       }
+      return;
     }
   });
 
