@@ -15,7 +15,7 @@ export const createSettingsRouter = (db: DatabaseService) => {
       const plexUrl = db.getSetting('plex_url') || '';
       const plexToken = db.getSetting('plex_token') || '';
 
-      res.json({
+      return res.json({
         settings: {
           plexUrl,
           hasPlexToken: !!plexToken,
@@ -23,7 +23,7 @@ export const createSettingsRouter = (db: DatabaseService) => {
       });
     } catch (error) {
       logger.error('Failed to get settings', { error });
-      res.status(500).json({ error: 'Failed to get settings' });
+      return res.status(500).json({ error: 'Failed to get settings' });
     }
   });
 
@@ -48,10 +48,10 @@ export const createSettingsRouter = (db: DatabaseService) => {
 
       logger.info('Settings updated by admin');
 
-      res.json({ message: 'Settings updated successfully' });
+      return res.json({ message: 'Settings updated successfully' });
     } catch (error) {
       logger.error('Failed to update settings', { error });
-      res.status(500).json({ error: 'Failed to update settings' });
+      return res.status(500).json({ error: 'Failed to update settings' });
     }
   });
 
@@ -59,10 +59,10 @@ export const createSettingsRouter = (db: DatabaseService) => {
   router.post('/test-connection', authMiddleware, adminMiddleware, async (req: AuthRequest, res) => {
     try {
       const isConnected = await plexService.testConnection();
-      res.json({ connected: isConnected });
+      return res.json({ connected: isConnected });
     } catch (error) {
       logger.error('Connection test failed', { error });
-      res.status(500).json({ error: 'Connection test failed', connected: false });
+      return res.status(500).json({ error: 'Connection test failed', connected: false });
     }
   });
 

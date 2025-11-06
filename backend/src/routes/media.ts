@@ -19,10 +19,10 @@ export const createMediaRouter = (db: DatabaseService) => {
 
       const userToken = req.user?.plexToken;
       const results = await plexService.search(q, userToken);
-      res.json({ results });
+      return res.json({ results });
     } catch (error) {
       logger.error('Search failed', { error });
-      res.status(500).json({ error: 'Search failed' });
+      return res.status(500).json({ error: 'Search failed' });
     }
   });
 
@@ -32,10 +32,10 @@ export const createMediaRouter = (db: DatabaseService) => {
       const { ratingKey } = req.params;
       const userToken = req.user?.plexToken;
       const metadata = await plexService.getMediaMetadata(ratingKey, userToken);
-      res.json({ metadata });
+      return res.json({ metadata });
     } catch (error) {
       logger.error('Failed to get media metadata', { error });
-      res.status(500).json({ error: 'Failed to get media metadata' });
+      return res.status(500).json({ error: 'Failed to get media metadata' });
     }
   });
 
@@ -86,7 +86,7 @@ export const createMediaRouter = (db: DatabaseService) => {
     } catch (error) {
       logger.error('Download failed', { error });
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Download failed' });
+        return res.status(500).json({ error: 'Download failed' });
       }
     }
   });
@@ -94,7 +94,6 @@ export const createMediaRouter = (db: DatabaseService) => {
   // Get thumbnail/poster proxy
   router.get('/thumb/:ratingKey', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { ratingKey } = req.params;
       const { path } = req.query;
 
       if (!path || typeof path !== 'string') {
@@ -122,7 +121,7 @@ export const createMediaRouter = (db: DatabaseService) => {
     } catch (error) {
       logger.error('Thumbnail proxy failed', { error });
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to load thumbnail' });
+        return res.status(500).json({ error: 'Failed to load thumbnail' });
       }
     }
   });

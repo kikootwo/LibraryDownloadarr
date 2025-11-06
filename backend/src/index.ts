@@ -40,8 +40,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', (_req, res) => {
+  return res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Routes
@@ -56,20 +56,20 @@ if (config.server.nodeEnv === 'production') {
   app.use(express.static(publicPath));
 
   // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html'));
+  app.get('*', (_req, res) => {
+    return res.sendFile(path.join(publicPath, 'index.html'));
   });
 } else {
   // 404 handler for development
-  app.use((req, res) => {
-    res.status(404).json({ error: 'Not found' });
+  app.use((_req, res) => {
+    return res.status(404).json({ error: 'Not found' });
   });
 }
 
 // Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error', { error: err });
-  res.status(500).json({ error: 'Internal server error' });
+  return res.status(500).json({ error: 'Internal server error' });
 });
 
 // Start server
