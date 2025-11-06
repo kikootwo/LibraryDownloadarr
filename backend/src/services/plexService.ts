@@ -286,7 +286,29 @@ export class PlexService {
           includeRelay: '1',
         },
       });
-      return response.data;
+
+      logger.info('getUserServers response', {
+        isArray: Array.isArray(response.data),
+        dataType: typeof response.data,
+        hasMediaContainer: !!response.data?.MediaContainer,
+        dataKeys: response.data ? Object.keys(response.data).slice(0, 10) : []
+      });
+
+      // Handle both array response and MediaContainer wrapper
+      if (Array.isArray(response.data)) {
+        return response.data;
+      } else if (response.data?.MediaContainer?.Device) {
+        return Array.isArray(response.data.MediaContainer.Device)
+          ? response.data.MediaContainer.Device
+          : [response.data.MediaContainer.Device];
+      } else if (response.data?.Device) {
+        return Array.isArray(response.data.Device)
+          ? response.data.Device
+          : [response.data.Device];
+      }
+
+      logger.warn('Unexpected getUserServers response format', { data: response.data });
+      return [];
     } catch (error) {
       logger.error('Failed to get user servers', { error });
       throw new Error('Failed to get user servers');
@@ -295,19 +317,45 @@ export class PlexService {
 
   findBestServerConnection(servers: any[], targetMachineId?: string): string | null {
     try {
+      logger.info('Finding best server connection', {
+        serversCount: servers.length,
+        targetMachineId,
+        firstServer: servers[0] ? {
+          name: servers[0].name,
+          provides: servers[0].provides,
+          owned: servers[0].owned,
+          hasConnections: !!servers[0].connections
+        } : 'none'
+      });
+
+      // Filter for servers that the user owns or has access to
+      const accessibleServers = servers.filter(s =>
+        s.provides === 'server' &&
+        (s.owned === '1' || s.owned === 1 || s.owned === true)
+      );
+
+      logger.info('Filtered accessible servers', {
+        totalServers: servers.length,
+        accessibleServers: accessibleServers.length,
+        serverNames: accessibleServers.slice(0, 5).map(s => s.name)
+      });
+
       // If we have a target machine ID (from admin settings), try to match it
       let targetServer = null;
       if (targetMachineId) {
-        targetServer = servers.find(s => s.clientIdentifier === targetMachineId && s.provides === 'server');
+        targetServer = accessibleServers.find(s => s.clientIdentifier === targetMachineId);
       }
 
-      // Otherwise, just find any server
-      if (!targetServer) {
-        targetServer = servers.find(s => s.provides === 'server');
+      // Otherwise, just use the first accessible server
+      if (!targetServer && accessibleServers.length > 0) {
+        targetServer = accessibleServers[0];
       }
 
       if (!targetServer) {
-        logger.warn('No Plex server found in user resources');
+        logger.warn('No Plex server found in user resources', {
+          totalServers: servers.length,
+          accessibleServers: accessibleServers.length
+        });
         return null;
       }
 
@@ -315,6 +363,7 @@ export class PlexService {
         name: targetServer.name,
         machineId: targetServer.clientIdentifier,
         hasConnections: !!targetServer.connections,
+        connectionsCount: targetServer.connections?.length || 0
       });
 
       // Find best connection URL
@@ -322,7 +371,7 @@ export class PlexService {
       const connections = targetServer.connections || [];
 
       // First try local connections
-      const localConn = connections.find((c: any) => c.local);
+      const localConn = connections.find((c: any) => c.local === 1 || c.local === '1' || c.local === true);
       if (localConn?.uri) {
         logger.info('Using local connection', { uri: localConn.uri });
         return localConn.uri;
@@ -335,10 +384,17 @@ export class PlexService {
         return anyConn.uri;
       }
 
-      logger.warn('No valid connection URI found for server');
+      logger.warn('No valid connection URI found for server', {
+        serverName: targetServer.name,
+        connectionsCount: connections.length
+      });
       return null;
     } catch (error) {
-      logger.error('Error finding best server connection', { error });
+      logger.error('Error finding best server connection', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return null;
     }
   }
