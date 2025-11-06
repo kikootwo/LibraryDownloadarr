@@ -79,9 +79,17 @@ export class PlexService {
       // If it starts with http:// or https://, parse it
       if (urlOrHostname.startsWith('http://') || urlOrHostname.startsWith('https://')) {
         const url = new URL(urlOrHostname);
-        return url.host; // This includes port if present
+        logger.info('Parsed hostname from URL', {
+          input: urlOrHostname,
+          output: url.host,
+          protocol: url.protocol,
+          hostname: url.hostname,
+          port: url.port
+        });
+        return url.host; // This includes port if present (e.g., "host.docker.internal:32400")
       }
       // Otherwise assume it's already in host:port format
+      logger.info('Using hostname as-is', { urlOrHostname });
       return urlOrHostname;
     } catch (error) {
       logger.warn('Failed to parse Plex URL, using as-is', { urlOrHostname, error });
