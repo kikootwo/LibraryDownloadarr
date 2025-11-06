@@ -124,6 +124,28 @@ export class PlexService {
     }
   }
 
+  async testConnectionWithCredentials(urlOrHostname: string, token: string): Promise<boolean> {
+    try {
+      const hostname = this.parseHostname(urlOrHostname);
+      const testClient = new PlexAPI({
+        hostname,
+        token,
+        options: {
+          identifier: config.plex.clientIdentifier,
+          product: config.plex.product,
+          version: config.plex.version,
+          deviceName: config.plex.device,
+        },
+      });
+
+      await testClient.query('/');
+      return true;
+    } catch (error) {
+      logger.error('Failed to test connection with provided credentials', { error });
+      return false;
+    }
+  }
+
   // OAuth PIN Flow
   async generatePin(): Promise<PlexPinResponse> {
     try {
@@ -199,14 +221,14 @@ export class PlexService {
 
   // Library operations
   async getLibraries(userToken?: string): Promise<PlexLibrary[]> {
-    if (!this.client) {
+    if (!this.client && !this.plexUrl) {
       throw new Error('Plex client not initialized');
     }
 
     try {
       const client = userToken
         ? new PlexAPI({
-            hostname: config.plex.url,
+            hostname: this.parseHostname(this.plexUrl || config.plex.url),
             token: userToken,
             options: {
               identifier: config.plex.clientIdentifier,
@@ -216,6 +238,10 @@ export class PlexService {
             },
           })
         : this.client;
+
+      if (!client) {
+        throw new Error('Plex client not available');
+      }
 
       const result = await client.query('/library/sections');
 
@@ -231,14 +257,14 @@ export class PlexService {
   }
 
   async getLibraryContent(libraryKey: string, userToken?: string): Promise<PlexMedia[]> {
-    if (!this.client) {
+    if (!this.client && !this.plexUrl) {
       throw new Error('Plex client not initialized');
     }
 
     try {
       const client = userToken
         ? new PlexAPI({
-            hostname: config.plex.url,
+            hostname: this.parseHostname(this.plexUrl || config.plex.url),
             token: userToken,
             options: {
               identifier: config.plex.clientIdentifier,
@@ -248,6 +274,10 @@ export class PlexService {
             },
           })
         : this.client;
+
+      if (!client) {
+        throw new Error('Plex client not available');
+      }
 
       const result = await client.query(`/library/sections/${libraryKey}/all`);
 
@@ -259,14 +289,14 @@ export class PlexService {
   }
 
   async getMediaMetadata(ratingKey: string, userToken?: string): Promise<PlexMedia> {
-    if (!this.client) {
+    if (!this.client && !this.plexUrl) {
       throw new Error('Plex client not initialized');
     }
 
     try {
       const client = userToken
         ? new PlexAPI({
-            hostname: config.plex.url,
+            hostname: this.parseHostname(this.plexUrl || config.plex.url),
             token: userToken,
             options: {
               identifier: config.plex.clientIdentifier,
@@ -276,6 +306,10 @@ export class PlexService {
             },
           })
         : this.client;
+
+      if (!client) {
+        throw new Error('Plex client not available');
+      }
 
       const result = await client.query(`/library/metadata/${ratingKey}`);
 
@@ -287,14 +321,14 @@ export class PlexService {
   }
 
   async search(query: string, userToken?: string): Promise<PlexMedia[]> {
-    if (!this.client) {
+    if (!this.client && !this.plexUrl) {
       throw new Error('Plex client not initialized');
     }
 
     try {
       const client = userToken
         ? new PlexAPI({
-            hostname: config.plex.url,
+            hostname: this.parseHostname(this.plexUrl || config.plex.url),
             token: userToken,
             options: {
               identifier: config.plex.clientIdentifier,
@@ -304,6 +338,10 @@ export class PlexService {
             },
           })
         : this.client;
+
+      if (!client) {
+        throw new Error('Plex client not available');
+      }
 
       const result = await client.query('/search', { query });
 
@@ -315,14 +353,14 @@ export class PlexService {
   }
 
   async getRecentlyAdded(userToken?: string, limit: number = 20): Promise<PlexMedia[]> {
-    if (!this.client) {
+    if (!this.client && !this.plexUrl) {
       throw new Error('Plex client not initialized');
     }
 
     try {
       const client = userToken
         ? new PlexAPI({
-            hostname: config.plex.url,
+            hostname: this.parseHostname(this.plexUrl || config.plex.url),
             token: userToken,
             options: {
               identifier: config.plex.clientIdentifier,
@@ -332,6 +370,10 @@ export class PlexService {
             },
           })
         : this.client;
+
+      if (!client) {
+        throw new Error('Plex client not available');
+      }
 
       const result = await client.query('/library/recentlyAdded', {
         'X-Plex-Container-Start': 0,

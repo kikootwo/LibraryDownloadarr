@@ -146,8 +146,11 @@ class ApiClient {
     await this.client.put('/settings', settings);
   }
 
-  async testPlexConnection(): Promise<boolean> {
-    const response = await this.client.post<{ connected: boolean }>('/settings/test-connection');
+  async testPlexConnection(plexUrl?: string, plexToken?: string): Promise<boolean> {
+    const response = await this.client.post<{ connected: boolean }>('/settings/test-connection', {
+      plexUrl,
+      plexToken,
+    });
     return response.data.connected;
   }
 }

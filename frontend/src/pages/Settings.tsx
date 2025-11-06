@@ -63,7 +63,26 @@ export const Settings: React.FC = () => {
     setMessage(null);
 
     try {
-      const connected = await api.testPlexConnection();
+      // Use values from input boxes if provided, otherwise use saved settings
+      const urlToTest = plexUrl || settings.plexUrl;
+      const tokenToTest = plexToken || (settings.hasPlexToken ? 'saved' : '');
+
+      if (!urlToTest) {
+        setMessage({ type: 'error', text: 'Please enter a Plex server URL' });
+        setIsTesting(false);
+        return;
+      }
+
+      if (!tokenToTest && !settings.hasPlexToken) {
+        setMessage({ type: 'error', text: 'Please enter a Plex token' });
+        setIsTesting(false);
+        return;
+      }
+
+      const connected = await api.testPlexConnection(
+        plexUrl || undefined,
+        plexToken || undefined
+      );
       if (connected) {
         setMessage({ type: 'success', text: 'Successfully connected to Plex server' });
       } else {

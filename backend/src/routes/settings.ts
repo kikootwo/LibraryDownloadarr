@@ -56,10 +56,18 @@ export const createSettingsRouter = (db: DatabaseService) => {
   });
 
   // Test Plex connection (admin only)
-  router.post('/test-connection', authMiddleware, adminMiddleware, async (_req: AuthRequest, res) => {
+  router.post('/test-connection', authMiddleware, adminMiddleware, async (req: AuthRequest, res) => {
     try {
-      const isConnected = await plexService.testConnection();
-      return res.json({ connected: isConnected });
+      const { plexUrl, plexToken } = req.body;
+
+      // If URL and token provided in request, test those; otherwise test saved settings
+      if (plexUrl && plexToken) {
+        const isConnected = await plexService.testConnectionWithCredentials(plexUrl, plexToken);
+        return res.json({ connected: isConnected });
+      } else {
+        const isConnected = await plexService.testConnection();
+        return res.json({ connected: isConnected });
+      }
     } catch (error) {
       logger.error('Connection test failed', { error });
       return res.status(500).json({ error: 'Connection test failed', connected: false });
