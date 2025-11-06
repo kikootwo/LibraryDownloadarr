@@ -4,12 +4,11 @@ import { Header } from '../components/Header';
 import { Sidebar } from '../components/Sidebar';
 import { MediaGrid } from '../components/MediaGrid';
 import { api } from '../services/api';
-import { MediaItem, Library } from '../types';
+import { MediaItem } from '../types';
 
 export const LibraryView: React.FC = () => {
   const { libraryKey } = useParams<{ libraryKey: string }>();
   const [media, setMedia] = useState<MediaItem[]>([]);
-  const [library, setLibrary] = useState<Library | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -29,7 +28,6 @@ export const LibraryView: React.FC = () => {
       // Get library info first to determine the type
       const libraries = await api.getLibraries();
       const currentLibrary = libraries.find((lib) => lib.key === libraryKey);
-      setLibrary(currentLibrary || null);
 
       // For artist libraries (audiobooks/music), fetch albums instead of artists
       const viewType = currentLibrary?.type === 'artist' ? 'albums' : undefined;
