@@ -11,26 +11,30 @@ export const createLibrariesRouter = (db: DatabaseService) => {
   // Get all libraries
   router.get('/', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      // Use user's Plex token if available (for Plex OAuth users)
-      // Otherwise use server's admin token from settings (for admin users)
-      const userToken = req.user?.plexToken || db.getSetting('plex_token') || undefined;
+      // Always use admin token for server access
+      // User's token is just for authentication/identity
+      const adminToken = db.getSetting('plex_token') || undefined;
       const plexUrl = db.getSetting('plex_url') || '';
 
       logger.info('Getting libraries', {
         hasUserToken: !!req.user?.plexToken,
-        hasAdminToken: !!db.getSetting('plex_token'),
+        hasAdminToken: !!adminToken,
         hasPlexUrl: !!plexUrl,
         plexUrl: plexUrl || 'NOT SET',
         userId: req.user?.id,
-        username: req.user?.username
+        username: req.user?.username,
+        isAdmin: req.user?.isAdmin
       });
 
-      // Make sure PlexService has the current URL and token from database
-      if (plexUrl && userToken) {
-        plexService.setServerConnection(plexUrl, userToken);
+      if (!adminToken || !plexUrl) {
+        return res.status(500).json({ error: 'Plex server not configured' });
       }
 
-      const libraries = await plexService.getLibraries(userToken);
+      // Make sure PlexService has the current URL and admin token
+      plexService.setServerConnection(plexUrl, adminToken);
+
+      // Pass undefined to use admin token (don't pass user token)
+      const libraries = await plexService.getLibraries(undefined);
       return res.json({ libraries });
     } catch (error: any) {
       logger.error('Failed to get libraries', {
@@ -49,12 +53,11 @@ export const createLibrariesRouter = (db: DatabaseService) => {
     try {
       const { libraryKey } = req.params;
       const { viewType } = req.query;
-      // Use user's Plex token if available (for Plex OAuth users)
-      // Otherwise use server's admin token from settings (for admin users)
-      const userToken = req.user?.plexToken || db.getSetting('plex_token') || undefined;
+      // Always use admin token for server access
+      const adminToken = db.getSetting('plex_token') || undefined;
       const content = await plexService.getLibraryContent(
         libraryKey,
-        userToken,
+        adminToken,
         viewType as string | undefined
       );
       return res.json({ content });
