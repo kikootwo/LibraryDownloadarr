@@ -302,7 +302,7 @@ export class PlexService {
         https: connectionDetails.https,
         token: token,
         authenticator: {
-          authenticate: (plexApi: any, cb: any) => {
+          authenticate: (_plexApi: any, cb: any) => {
             // Simply pass the token we already have
             cb(null, token);
           },
