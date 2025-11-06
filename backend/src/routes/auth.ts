@@ -127,10 +127,14 @@ export const createAuthRouter = (db: DatabaseService) => {
         return res.status(400).json({ error: 'PIN ID is required' });
       }
 
+      logger.info('Checking Plex PIN', { pinId });
+
       const authResponse = await plexService.checkPin(pinId);
       if (!authResponse) {
         return res.status(400).json({ error: 'PIN not yet authorized' });
       }
+
+      logger.info('Plex PIN authorized', { username: authResponse.user.username });
 
       // Create or update plex user
       const plexUser = db.createOrUpdatePlexUser({
@@ -154,8 +158,12 @@ export const createAuthRouter = (db: DatabaseService) => {
         },
         token: session.token,
       });
-    } catch (error) {
-      logger.error('Plex authentication error', { error });
+    } catch (error: any) {
+      logger.error('Plex authentication error', {
+        error: error.message,
+        stack: error.stack,
+        pinId: req.body.pinId
+      });
       return res.status(500).json({ error: 'Plex authentication failed' });
     }
   });

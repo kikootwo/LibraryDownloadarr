@@ -222,27 +222,33 @@ export class PlexService {
 
   // Library operations
   async getLibraries(userToken?: string): Promise<PlexLibrary[]> {
-    if (!this.client && !this.plexUrl) {
-      throw new Error('Plex client not initialized');
-    }
-
     try {
-      const client = userToken
-        ? new PlexAPI({
-            hostname: this.parseHostname(this.plexUrl || config.plex.url),
-            token: userToken,
-            options: {
-              identifier: config.plex.clientIdentifier,
-              product: config.plex.product,
-              version: config.plex.version,
-              deviceName: config.plex.device,
-            },
-          })
-        : this.client;
+      // Determine which URL and token to use
+      const url = this.plexUrl || config.plex.url;
+      const token = userToken || config.plex.token;
 
-      if (!client) {
-        throw new Error('Plex client not available');
+      logger.info('getLibraries called', {
+        hasUrl: !!url,
+        hasToken: !!token,
+        hasUserToken: !!userToken,
+        url
+      });
+
+      if (!url || !token) {
+        throw new Error('Plex URL and token are required. Please configure in Settings.');
       }
+
+      // Always create a fresh client for reliability
+      const client = new PlexAPI({
+        hostname: this.parseHostname(url),
+        token: token,
+        options: {
+          identifier: config.plex.clientIdentifier,
+          product: config.plex.product,
+          version: config.plex.version,
+          deviceName: config.plex.device,
+        },
+      });
 
       const result = await client.query('/library/sections');
 
@@ -251,9 +257,14 @@ export class PlexService {
         title: dir.title,
         type: dir.type,
       }));
-    } catch (error) {
-      logger.error('Failed to get libraries', { error });
-      throw new Error('Failed to get libraries');
+    } catch (error: any) {
+      logger.error('Failed to get libraries', {
+        error: error.message,
+        stack: error.stack,
+        hasUrl: !!(this.plexUrl || config.plex.url),
+        hasToken: !!userToken
+      });
+      throw error;
     }
   }
 
