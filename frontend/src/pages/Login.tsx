@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../services/api';
@@ -10,7 +10,14 @@ export const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlexLoading, setIsPlexLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, setUser, setToken } = useAuthStore();
+  const { login, setUser, setToken, token, user } = useAuthStore();
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    if (token && user) {
+      navigate('/', { replace: true });
+    }
+  }, [token, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -243,7 +243,7 @@ export const createAuthRouter = (db: DatabaseService) => {
       // Verify current password
       const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
       if (!isValid) {
-        return res.status(401).json({ error: 'Current password is incorrect' });
+        return res.status(400).json({ error: 'Current password is incorrect' });
       }
 
       // Hash new password

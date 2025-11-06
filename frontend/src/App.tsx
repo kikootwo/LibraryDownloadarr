@@ -11,6 +11,8 @@ import { Settings } from './pages/Settings';
 import { SearchResults } from './pages/SearchResults';
 import { DownloadHistory } from './pages/DownloadHistory';
 import { Logs } from './pages/Logs';
+import { DownloadProvider } from './contexts/DownloadContext';
+import { DownloadManager } from './components/DownloadManager';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token } = useAuthStore();
@@ -57,16 +59,18 @@ const App: React.FC = () => {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {setupRequired ? (
-          <>
-            <Route path="/setup" element={<Setup />} />
-            <Route path="*" element={<Navigate to="/setup" replace />} />
-          </>
-        ) : (
-          <>
-            <Route path="/login" element={<Login />} />
+    <DownloadProvider>
+      <BrowserRouter>
+        <DownloadManager />
+        <Routes>
+          {setupRequired ? (
+            <>
+              <Route path="/setup" element={<Setup />} />
+              <Route path="*" element={<Navigate to="/setup" replace />} />
+            </>
+          ) : (
+            <>
+              <Route path="/login" element={<Login />} />
             <Route
               path="/"
               element={
@@ -128,6 +132,7 @@ const App: React.FC = () => {
         )}
       </Routes>
     </BrowserRouter>
+    </DownloadProvider>
   );
 };
 

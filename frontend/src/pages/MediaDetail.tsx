@@ -7,6 +7,7 @@ import { MediaItem } from '../types';
 
 export const MediaDetail: React.FC = () => {
   const { ratingKey } = useParams<{ ratingKey: string }>();
+  // TODO: integrate global download manager in future
   const [media, setMedia] = useState<MediaItem | null>(null);
   const [seasons, setSeasons] = useState<MediaItem[]>([]);
   const [episodesBySeason, setEpisodesBySeason] = useState<Record<string, MediaItem[]>>({});

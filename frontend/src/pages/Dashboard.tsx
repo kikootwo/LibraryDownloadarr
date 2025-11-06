@@ -27,7 +27,7 @@ export const Dashboard: React.FC = () => {
   const loadDashboard = async () => {
     try {
       const [media, downloadStats] = await Promise.all([
-        api.getRecentlyAdded(24),
+        api.getRecentlyAdded(100),
         api.getDownloadStats().catch(() => null),
       ]);
       setRecentlyAdded(media);
