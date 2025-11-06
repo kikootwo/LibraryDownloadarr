@@ -275,15 +275,16 @@ export class PlexService {
 
   async getUserServers(userToken: string): Promise<any[]> {
     try {
-      // Use the resources endpoint (not v2) - this works for getting user's accessible servers
+      // Use the resources endpoint - MUST use format=json param for JSON response
       const response = await axios.get('https://plex.tv/api/resources', {
         headers: {
           'X-Plex-Token': userToken,
-          Accept: 'application/json',
+          'Accept': 'application/json',
         },
         params: {
           includeHttps: '1',
           includeRelay: '1',
+          format: 'json',  // Force JSON format (Plex API defaults to XML!)
         },
       });
 
@@ -328,16 +329,17 @@ export class PlexService {
         } : 'none'
       });
 
-      // Filter for servers that the user owns or has access to
+      // Filter for servers that the user has access to
+      // They either own it (owned=1) OR have an accessToken (shared with them)
       const accessibleServers = servers.filter(s =>
         s.provides === 'server' &&
-        (s.owned === '1' || s.owned === 1 || s.owned === true)
+        (s.owned === '1' || s.owned === 1 || s.owned === true || s.accessToken)
       );
 
       logger.info('Filtered accessible servers', {
         totalServers: servers.length,
         accessibleServers: accessibleServers.length,
-        serverNames: accessibleServers.slice(0, 5).map(s => s.name)
+        serverNames: accessibleServers.slice(0, 5).map((s: any) => s.name)
       });
 
       // If we have a target machine ID (from admin settings), try to match it
@@ -368,17 +370,27 @@ export class PlexService {
 
       // Find best connection URL
       // Prefer: local > relay
-      const connections = targetServer.connections || [];
+      const connections = targetServer.connections || targetServer.Connection || [];
+      const connectionsArray = Array.isArray(connections) ? connections : [connections];
+
+      logger.info('Checking connections', {
+        connectionsCount: connectionsArray.length,
+        firstConnection: connectionsArray[0] ? {
+          uri: connectionsArray[0].uri,
+          local: connectionsArray[0].local,
+          protocol: connectionsArray[0].protocol
+        } : 'none'
+      });
 
       // First try local connections
-      const localConn = connections.find((c: any) => c.local === 1 || c.local === '1' || c.local === true);
+      const localConn = connectionsArray.find((c: any) => c.local === 1 || c.local === '1' || c.local === true);
       if (localConn?.uri) {
         logger.info('Using local connection', { uri: localConn.uri });
         return localConn.uri;
       }
 
       // Fall back to any available connection (including relay)
-      const anyConn = connections.find((c: any) => c.uri);
+      const anyConn = connectionsArray.find((c: any) => c.uri);
       if (anyConn?.uri) {
         logger.info('Using relay/remote connection', { uri: anyConn.uri });
         return anyConn.uri;
@@ -386,7 +398,7 @@ export class PlexService {
 
       logger.warn('No valid connection URI found for server', {
         serverName: targetServer.name,
-        connectionsCount: connections.length
+        connectionsCount: connectionsArray.length
       });
       return null;
     } catch (error) {
