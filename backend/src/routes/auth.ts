@@ -220,5 +220,46 @@ export const createAuthRouter = (db: DatabaseService) => {
     }
   });
 
+  // Change password (admin users only)
+  router.post('/change-password', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+      }
+
+      // Only admin users (those with password_hash) can change passwords
+      // Plex users authenticate via OAuth and don't have passwords
+      const user = db.getAdminUserById(req.user!.id);
+      if (!user) {
+        return res.status(400).json({ error: 'Password change is only available for admin accounts' });
+      }
+
+      // Verify current password
+      const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+      // Update password in database
+      db.updateAdminPassword(user.id, newPasswordHash);
+
+      logger.info(`Password changed for admin user: ${user.username}`);
+
+      return res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      logger.error('Password change error', { error });
+      return res.status(500).json({ error: 'Password change failed' });
+    }
+  });
+
   return router;
 };

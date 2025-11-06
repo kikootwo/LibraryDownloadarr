@@ -36,6 +36,13 @@ export interface PlexMedia {
   originallyAvailableAt?: string;
   studio?: string;
   contentRating?: string;
+  // Episode/Season specific fields
+  grandparentTitle?: string; // Show name for episodes
+  parentTitle?: string; // Season name for episodes
+  index?: number; // Episode number
+  parentIndex?: number; // Season number
+  // Album/Track specific fields
+  parentRatingKey?: string; // Album rating key for tracks
   Media?: Array<{
     id: number;
     duration: number;
@@ -800,20 +807,56 @@ export class PlexService {
         throw new Error('Plex client not available');
       }
 
-      const result = await client.query('/library/recentlyAdded', {
-        'X-Plex-Container-Start': 0,
-        'X-Plex-Container-Size': limit,
+      // Get all libraries first
+      const libraries = await this.getLibraries(userToken);
+      logger.info('Fetching recently added from all libraries', {
+        libraryCount: libraries.length,
+        libraries: libraries.map(l => ({ key: l.key, title: l.title, type: l.type }))
       });
 
-      const metadata = result.MediaContainer.Metadata || [];
+      // Fetch recently added from each library
+      const allMedia: PlexMedia[] = [];
+      const itemsPerLibrary = Math.ceil(limit / libraries.length) + 5; // Get a few extra from each
+
+      for (const library of libraries) {
+        try {
+          const result = await client.query(`/library/sections/${library.key}/recentlyAdded`, {
+            'X-Plex-Container-Start': 0,
+            'X-Plex-Container-Size': itemsPerLibrary,
+          });
+
+          const metadata = result.MediaContainer.Metadata || [];
+          logger.info(`Library ${library.title} recently added`, {
+            libraryKey: library.key,
+            libraryType: library.type,
+            itemCount: metadata.length,
+            mediaTypes: metadata.map((m: any) => m.type).filter((v: any, i: any, a: any) => a.indexOf(v) === i)
+          });
+
+          allMedia.push(...metadata);
+        } catch (error: any) {
+          logger.warn(`Failed to get recently added from library ${library.title}`, {
+            libraryKey: library.key,
+            error: error.message
+          });
+          // Continue with other libraries even if one fails
+        }
+      }
+
+      // Sort by addedAt timestamp (most recent first) and limit
+      const sorted = allMedia
+        .filter(m => m.addedAt) // Only include items with addedAt timestamp
+        .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
+        .slice(0, limit);
 
       logger.info('Recently added query completed', {
         requestedLimit: limit,
-        returnedCount: metadata.length,
-        mediaTypes: metadata.map((m: any) => m.type).filter((v: any, i: any, a: any) => a.indexOf(v) === i)
+        totalFetched: allMedia.length,
+        returnedCount: sorted.length,
+        mediaTypes: sorted.map((m: any) => m.type).filter((v: any, i: any, a: any) => a.indexOf(v) === i)
       });
 
-      return metadata;
+      return sorted;
     } catch (error: any) {
       logger.error('Failed to get recently added', {
         error: error.message,

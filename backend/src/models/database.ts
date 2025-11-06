@@ -181,6 +181,11 @@ export class DatabaseService {
     stmt.run(Date.now(), id);
   }
 
+  updateAdminPassword(id: string, passwordHash: string): void {
+    const stmt = this.db.prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?');
+    stmt.run(passwordHash, id);
+  }
+
   // Plex user operations
   createOrUpdatePlexUser(plexUser: Omit<User, 'id' | 'createdAt' | 'isAdmin'>): User {
     const existing = this.getPlexUserByPlexId(plexUser.plexId!);

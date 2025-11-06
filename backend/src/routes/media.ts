@@ -9,6 +9,30 @@ export const createMediaRouter = (db: DatabaseService) => {
   const router = Router();
   const authMiddleware = createAuthMiddleware(db);
 
+  // Helper function to format media title for download logs
+  const formatMediaTitle = (metadata: any): string => {
+    const type = metadata.type;
+
+    if (type === 'episode') {
+      // Format: "Show Name - S01E05 - Episode Title"
+      const showName = metadata.grandparentTitle || 'Unknown Show';
+      const seasonNum = metadata.parentIndex ? String(metadata.parentIndex).padStart(2, '0') : '00';
+      const episodeNum = metadata.index ? String(metadata.index).padStart(2, '0') : '00';
+      const episodeTitle = metadata.title || 'Unknown Episode';
+      return `${showName} - S${seasonNum}E${episodeNum} - ${episodeTitle}`;
+    }
+
+    if (type === 'track') {
+      // Format: "Album Name - Track Name"
+      const albumName = metadata.parentTitle || 'Unknown Album';
+      const trackTitle = metadata.title || 'Unknown Track';
+      return `${albumName} - ${trackTitle}`;
+    }
+
+    // For movies, seasons, albums, or anything else, just use the title
+    return metadata.title || 'Unknown Media';
+  };
+
   // Helper function to get user credentials with proper fallback
   const getUserCredentials = (req: AuthRequest): { token: string | undefined; serverUrl: string; error?: string } => {
     const userToken = req.user?.plexToken;
@@ -347,10 +371,11 @@ export const createMediaRouter = (db: DatabaseService) => {
         ? parseInt(response.headers['content-length'], 10)
         : undefined;
 
-      // Log the download with actual file size
+      // Log the download with formatted title and actual file size
+      const formattedTitle = formatMediaTitle(metadata);
       db.logDownload(
         req.user!.id,
-        metadata.title,
+        formattedTitle,
         ratingKey,
         fileSize
       );
@@ -365,7 +390,7 @@ export const createMediaRouter = (db: DatabaseService) => {
 
       response.data.pipe(res);
 
-      logger.info(`Download started for ${metadata.title} by user ${req.user?.username}`);
+      logger.info(`Download started for ${formattedTitle} by user ${req.user?.username}`);
       return;
     } catch (error) {
       logger.error('Download failed', { error });

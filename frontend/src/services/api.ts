@@ -80,6 +80,13 @@ class ApiClient {
     localStorage.removeItem('token');
   }
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await this.client.post('/auth/change-password', {
+      currentPassword,
+      newPassword,
+    });
+  }
+
   // Library endpoints
   async getLibraries(): Promise<Library[]> {
     const response = await this.client.get<{ libraries: Library[] }>('/libraries');

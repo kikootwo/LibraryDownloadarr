@@ -16,6 +16,13 @@ export const Settings: React.FC = () => {
   const [isTesting, setIsTesting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -92,6 +99,48 @@ export const Settings: React.FC = () => {
       setMessage({ type: 'error', text: 'Failed to test connection' });
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsChangingPassword(true);
+    setPasswordMessage(null);
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'All fields are required' });
+      setIsChangingPassword(false);
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordMessage({ type: 'error', text: 'New password must be at least 6 characters long' });
+      setIsChangingPassword(false);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'New passwords do not match' });
+      setIsChangingPassword(false);
+      return;
+    }
+
+    try {
+      await api.changePassword(currentPassword, newPassword);
+      setPasswordMessage({ type: 'success', text: 'Password changed successfully' });
+
+      // Clear form
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setPasswordMessage({
+        type: 'error',
+        text: err.response?.data?.error || 'Failed to change password'
+      });
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -186,6 +235,64 @@ export const Settings: React.FC = () => {
                     {isTesting ? 'Testing...' : 'Test Connection'}
                   </button>
                 </div>
+              </form>
+            </div>
+
+            <div className="card p-6 mt-6">
+              <h2 className="text-xl font-semibold mb-4">Change Password</h2>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Current Password</label>
+                  <input
+                    type="password"
+                    className="input"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">New Password</label>
+                  <input
+                    type="password"
+                    className="input"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min. 6 characters)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Confirm New Password</label>
+                  <input
+                    type="password"
+                    className="input"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                  />
+                </div>
+
+                {passwordMessage && (
+                  <div
+                    className={`px-4 py-3 rounded-lg text-sm ${
+                      passwordMessage.type === 'success'
+                        ? 'bg-green-500/10 border border-green-500/20 text-green-400'
+                        : 'bg-red-500/10 border border-red-500/20 text-red-400'
+                    }`}
+                  >
+                    {passwordMessage.text}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="btn-primary"
+                >
+                  {isChangingPassword ? 'Changing Password...' : 'Change Password'}
+                </button>
               </form>
             </div>
 
