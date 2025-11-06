@@ -1,0 +1,37 @@
+{
+  "name": "plexdownloadarr",
+  "version": "1.0.0",
+  "description": "A modern web application for downloading media from Plex Media Server",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "keywords": [
+    "plex",
+    "download",
+    "media",
+    "server",
+    "arr"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/PlexDownloadarr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/PlexDownloadarr/issues"
+  }
+}
