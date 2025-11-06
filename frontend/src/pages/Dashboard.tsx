@@ -5,16 +5,42 @@ import { Sidebar } from '../components/Sidebar';
 import { MediaGrid } from '../components/MediaGrid';
 import { api } from '../services/api';
 import { MediaItem } from '../types';
+import { useAuthStore } from '../stores/authStore';
 
 export const Dashboard: React.FC = () => {
   const [recentlyAdded, setRecentlyAdded] = useState<MediaItem[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    // Wait for user to be loaded
+    if (!user) {
+      return;
+    }
+
+    // Redirect non-admin users to the first library
+    if (!user.isAdmin) {
+      redirectToFirstLibrary();
+    } else {
+      loadDashboard();
+    }
+  }, [user]);
+
+  const redirectToFirstLibrary = async () => {
+    try {
+      const libraries = await api.getLibraries();
+      if (libraries.length > 0) {
+        navigate(`/library/${libraries[0].key}`, { replace: true });
+      } else {
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Failed to load libraries', error);
+      setIsLoading(false);
+    }
+  };
 
   const loadDashboard = async () => {
     try {
@@ -57,13 +83,14 @@ export const Dashboard: React.FC = () => {
                 </p>
               </div>
 
-              <div className="card p-6">
+              <div className="card p-6 cursor-pointer hover:border-primary-500 transition-colors" onClick={() => navigate('/admin/download-history')}>
                 <div className="text-4xl mb-4">📊</div>
                 <h3 className="text-xl font-semibold mb-2">Downloads</h3>
                 {stats ? (
                   <div className="text-sm space-y-1">
                     <p className="text-gray-400">Total: {stats.count || 0}</p>
                     <p className="text-gray-400">Size: {formatBytes(stats.total_size)}</p>
+                    <p className="text-primary-400 text-xs mt-2">Click to view history →</p>
                   </div>
                 ) : (
                   <p className="text-gray-400 text-sm">Track your download history and stats</p>

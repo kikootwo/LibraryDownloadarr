@@ -86,9 +86,12 @@ class ApiClient {
     return response.data.libraries;
   }
 
-  async getLibraryContent(libraryKey: string): Promise<MediaItem[]> {
+  async getLibraryContent(libraryKey: string, viewType?: string): Promise<MediaItem[]> {
     const response = await this.client.get<{ content: MediaItem[] }>(
-      `/libraries/${libraryKey}/content`
+      `/libraries/${libraryKey}/content`,
+      {
+        params: viewType ? { viewType } : undefined,
+      }
     );
     return response.data.content;
   }
@@ -113,8 +116,30 @@ class ApiClient {
     return response.data.metadata;
   }
 
+  async getSeasons(showRatingKey: string): Promise<MediaItem[]> {
+    const response = await this.client.get<{ seasons: MediaItem[] }>(`/media/${showRatingKey}/seasons`);
+    return response.data.seasons;
+  }
+
+  async getEpisodes(seasonRatingKey: string): Promise<MediaItem[]> {
+    const response = await this.client.get<{ episodes: MediaItem[] }>(`/media/${seasonRatingKey}/episodes`);
+    return response.data.episodes;
+  }
+
+  async getTracks(albumRatingKey: string): Promise<MediaItem[]> {
+    const response = await this.client.get<{ tracks: MediaItem[] }>(`/media/${albumRatingKey}/tracks`);
+    return response.data.tracks;
+  }
+
   async getDownloadHistory(limit: number = 50): Promise<any[]> {
     const response = await this.client.get<{ history: any[] }>('/media/download-history', {
+      params: { limit },
+    });
+    return response.data.history;
+  }
+
+  async getAllDownloadHistory(limit: number = 100): Promise<any[]> {
+    const response = await this.client.get<{ history: any[] }>('/media/download-history/all', {
       params: { limit },
     });
     return response.data.history;
@@ -126,10 +151,7 @@ class ApiClient {
   }
 
   getDownloadUrl(ratingKey: string, partKey: string): string {
-    const token = localStorage.getItem('token');
-    return `/api/media/${ratingKey}/download?partKey=${encodeURIComponent(
-      partKey
-    )}&token=${token}`;
+    return `/api/media/${ratingKey}/download?partKey=${encodeURIComponent(partKey)}`;
   }
 
   getThumbnailUrl(ratingKey: string, path: string): string {

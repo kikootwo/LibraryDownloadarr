@@ -25,7 +25,13 @@ export const LibraryView: React.FC = () => {
     setError('');
 
     try {
-      const content = await api.getLibraryContent(libraryKey);
+      // Get library info first to determine the type
+      const libraries = await api.getLibraries();
+      const currentLibrary = libraries.find((lib) => lib.key === libraryKey);
+
+      // For artist libraries (audiobooks/music), fetch albums instead of artists
+      const viewType = currentLibrary?.type === 'artist' ? 'albums' : undefined;
+      const content = await api.getLibraryContent(libraryKey, viewType);
       setMedia(content);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load library content');

@@ -136,18 +136,52 @@ export const createAuthRouter = (db: DatabaseService) => {
 
       logger.info('Plex PIN authorized', { username: authResponse.user.username });
 
+      // Get user's accessible Plex servers and find best connection URL
+      let serverUrl: string | undefined;
+      let serverAccessToken: string | undefined;
+      try {
+        const userServers = await plexService.getUserServers(authResponse.authToken);
+        const adminMachineId = db.getSetting('plex_machine_id'); // Optional: match specific server
+        const connection = plexService.findBestServerConnection(userServers, adminMachineId);
+
+        serverUrl = connection.serverUrl || undefined;
+        serverAccessToken = connection.accessToken || undefined;
+
+        if (!serverUrl) {
+          logger.warn('Could not find accessible Plex server for user', {
+            username: authResponse.user.username,
+            serversCount: userServers.length,
+          });
+        }
+
+        logger.info('Server connection found for user', {
+          username: authResponse.user.username,
+          hasServerUrl: !!serverUrl,
+          hasAccessToken: !!serverAccessToken,
+          isSharedServer: !!serverAccessToken
+        });
+      } catch (error) {
+        logger.error('Failed to get user servers', { error });
+        // Continue without serverUrl - will fall back to admin URL if needed
+      }
+
       // Create or update plex user
+      // For shared servers, use the server's accessToken; for owned servers, use the user's auth token
       const plexUser = db.createOrUpdatePlexUser({
         username: authResponse.user.username,
         email: authResponse.user.email,
-        plexToken: authResponse.authToken,
+        plexToken: serverAccessToken || authResponse.authToken,
         plexId: authResponse.user.uuid,
+        serverUrl,
       });
 
       // Create session
       const session = db.createSession(plexUser.id);
 
-      logger.info(`Plex user authenticated: ${plexUser.username}`);
+      logger.info(`Plex user authenticated: ${plexUser.username}`, {
+        hasServerUrl: !!serverUrl,
+        serverUrl: serverUrl,
+      });
 
       return res.json({
         user: {
