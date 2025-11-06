@@ -16,6 +16,7 @@ export const MediaDetail: React.FC = () => {
   const [error, setError] = useState('');
   const [downloadingKeys, setDownloadingKeys] = useState<Set<string>>(new Set());
   const [downloadStatus, setDownloadStatus] = useState<string>('');
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (ratingKey) {
@@ -76,6 +77,7 @@ export const MediaDetail: React.FC = () => {
 
     // Track this download as in progress
     setDownloadingKeys(prev => new Set(prev).add(partKey));
+    setDownloadProgress(prev => ({ ...prev, [partKey]: 0 }));
     setDownloadStatus(`Downloading ${filename}...`);
 
     try {
@@ -92,7 +94,43 @@ export const MediaDetail: React.FC = () => {
         throw new Error('Download failed');
       }
 
-      const blob = await response.blob();
+      // Get total size from Content-Length header
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+      // Read the response body with progress tracking
+      const reader = response.body?.getReader();
+      const chunks: Uint8Array[] = [];
+      let receivedLength = 0;
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          chunks.push(value);
+          receivedLength += value.length;
+
+          // Update progress
+          if (total > 0) {
+            const progress = Math.round((receivedLength / total) * 100);
+            setDownloadProgress(prev => ({ ...prev, [partKey]: progress }));
+            setDownloadStatus(`Downloading ${filename}... ${progress}%`);
+          }
+        }
+      }
+
+      // Combine chunks into single Uint8Array
+      const chunksAll = new Uint8Array(receivedLength);
+      let position = 0;
+      for (const chunk of chunks) {
+        chunksAll.set(chunk, position);
+        position += chunk.length;
+      }
+
+      // Create blob and download
+      const blob = new Blob([chunksAll]);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -109,10 +147,15 @@ export const MediaDetail: React.FC = () => {
       setDownloadStatus('✗ Download failed. Please try again.');
       setTimeout(() => setDownloadStatus(''), 5000);
     } finally {
-      // Remove from downloading set
+      // Remove from downloading set and progress
       setDownloadingKeys(prev => {
         const next = new Set(prev);
         next.delete(partKey);
+        return next;
+      });
+      setDownloadProgress(prev => {
+        const next = { ...prev };
+        delete next[partKey];
         return next;
       });
     }
@@ -269,7 +312,9 @@ export const MediaDetail: React.FC = () => {
                                   disabled={downloadingKeys.has(track.Media![0].Part[0].key)}
                                   className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  {downloadingKeys.has(track.Media![0].Part[0].key) ? 'Downloading...' : 'Download'}
+                                  {downloadingKeys.has(track.Media![0].Part[0].key)
+                                    ? `${downloadProgress[track.Media![0].Part[0].key] || 0}%`
+                                    : 'Download'}
                                 </button>
                               )}
                             </div>
@@ -349,7 +394,9 @@ export const MediaDetail: React.FC = () => {
                                             disabled={downloadingKeys.has(episode.Media![0].Part[0].key)}
                                             className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                           >
-                                            {downloadingKeys.has(episode.Media![0].Part[0].key) ? 'Downloading...' : 'Download'}
+                                            {downloadingKeys.has(episode.Media![0].Part[0].key)
+                                              ? `${downloadProgress[episode.Media![0].Part[0].key] || 0}%`
+                                              : 'Download'}
                                           </button>
                                         )}
                                       </div>
@@ -392,7 +439,9 @@ export const MediaDetail: React.FC = () => {
                                     disabled={downloadingKeys.has(part.key)}
                                     className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    {downloadingKeys.has(part.key) ? 'Downloading...' : 'Download'}
+                                    {downloadingKeys.has(part.key)
+                                      ? `${downloadProgress[part.key] || 0}%`
+                                      : 'Download'}
                                   </button>
                                 ))}
                               </div>

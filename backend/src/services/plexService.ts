@@ -301,6 +301,12 @@ export class PlexService {
         port: connectionDetails.port,
         https: connectionDetails.https,
         token: token,
+        authenticator: {
+          authenticate: (plexApi: any, cb: any) => {
+            // Simply pass the token we already have
+            cb(null, token);
+          },
+        },
         options: {
           identifier: config.plex.clientIdentifier,
           product: config.plex.product,
