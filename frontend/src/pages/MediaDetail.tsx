@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Sidebar } from '../components/Sidebar';
 import { api } from '../services/api';
@@ -7,7 +7,6 @@ import { MediaItem } from '../types';
 
 export const MediaDetail: React.FC = () => {
   const { ratingKey } = useParams<{ ratingKey: string }>();
-  const navigate = useNavigate();
   const [media, setMedia] = useState<MediaItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');

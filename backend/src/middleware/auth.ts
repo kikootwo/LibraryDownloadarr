@@ -9,7 +9,7 @@ export interface AuthRequest extends Request {
     isAdmin: boolean;
     plexToken?: string;
   };
-  session?: {
+  authSession?: {
     id: string;
     token: string;
   };
@@ -38,7 +38,7 @@ export const createAuthMiddleware = (db: DatabaseService) => {
           username: adminUser.username,
           isAdmin: adminUser.isAdmin,
         };
-        req.session = {
+        req.authSession = {
           id: session.id,
           token: session.token,
         };
@@ -54,7 +54,7 @@ export const createAuthMiddleware = (db: DatabaseService) => {
           isAdmin: plexUser.isAdmin,
           plexToken: plexUser.plexToken,
         };
-        req.session = {
+        req.authSession = {
           id: session.id,
           token: session.token,
         };
@@ -74,6 +74,6 @@ export const createAdminMiddleware = () => {
     if (!req.user?.isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    next();
+    return next();
   };
 };

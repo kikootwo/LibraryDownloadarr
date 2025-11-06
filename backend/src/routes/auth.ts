@@ -10,9 +10,9 @@ export const createAuthRouter = (db: DatabaseService) => {
   const authMiddleware = createAuthMiddleware(db);
 
   // Check if initial setup is required
-  router.get('/setup/required', (req, res) => {
+  router.get('/setup/required', (_req, res) => {
     const hasAdmin = db.hasAdminUser();
-    res.json({ setupRequired: !hasAdmin });
+    return res.json({ setupRequired: !hasAdmin });
   });
 
   // Initial admin setup
@@ -53,7 +53,7 @@ export const createAuthRouter = (db: DatabaseService) => {
 
       logger.info(`Initial admin setup completed for user: ${username}`);
 
-      res.json({
+      return res.json({
         message: 'Setup completed successfully',
         user: {
           id: adminUser.id,
@@ -65,7 +65,7 @@ export const createAuthRouter = (db: DatabaseService) => {
       });
     } catch (error) {
       logger.error('Setup error', { error });
-      res.status(500).json({ error: 'Setup failed' });
+      return res.status(500).json({ error: 'Setup failed' });
     }
   });
 
@@ -93,7 +93,7 @@ export const createAuthRouter = (db: DatabaseService) => {
 
       logger.info(`User logged in: ${username}`);
 
-      res.json({
+      return res.json({
         user: {
           id: user.id,
           username: user.username,
@@ -104,15 +104,15 @@ export const createAuthRouter = (db: DatabaseService) => {
       });
     } catch (error) {
       logger.error('Login error', { error });
-      res.status(500).json({ error: 'Login failed' });
+      return res.status(500).json({ error: 'Login failed' });
     }
   });
 
   // Plex OAuth: Generate PIN
-  router.post('/plex/pin', async (req, res) => {
+  router.post('/plex/pin', async (_req, res) => {
     try {
       const pin = await plexService.generatePin();
-      res.json({
+      return res.json({
         id: pin.id,
         code: pin.code,
         url: `https://app.plex.tv/auth#?clientID=${encodeURIComponent(
@@ -123,7 +123,7 @@ export const createAuthRouter = (db: DatabaseService) => {
       });
     } catch (error) {
       logger.error('Plex PIN generation error', { error });
-      res.status(500).json({ error: 'Failed to generate Plex PIN' });
+      return res.status(500).json({ error: 'Failed to generate Plex PIN' });
     }
   });
 
@@ -154,7 +154,7 @@ export const createAuthRouter = (db: DatabaseService) => {
 
       logger.info(`Plex user authenticated: ${plexUser.username}`);
 
-      res.json({
+      return res.json({
         user: {
           id: plexUser.id,
           username: plexUser.username,
@@ -165,25 +165,25 @@ export const createAuthRouter = (db: DatabaseService) => {
       });
     } catch (error) {
       logger.error('Plex authentication error', { error });
-      res.status(500).json({ error: 'Plex authentication failed' });
+      return res.status(500).json({ error: 'Plex authentication failed' });
     }
   });
 
   // Get current user
   router.get('/me', authMiddleware, (req: AuthRequest, res) => {
-    res.json({ user: req.user });
+    return res.json({ user: req.user });
   });
 
   // Logout
   router.post('/logout', authMiddleware, (req: AuthRequest, res) => {
     try {
-      if (req.session?.token) {
-        db.deleteSession(req.session.token);
+      if (req.authSession?.token) {
+        db.deleteSession(req.authSession.token);
       }
-      res.json({ message: 'Logged out successfully' });
+      return res.json({ message: 'Logged out successfully' });
     } catch (error) {
       logger.error('Logout error', { error });
-      res.status(500).json({ error: 'Logout failed' });
+      return res.status(500).json({ error: 'Logout failed' });
     }
   });
 

@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "A modern web application for downloading media from Plex Media Server",
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend"
-  ],
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",

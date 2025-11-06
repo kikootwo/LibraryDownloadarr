@@ -13,10 +13,10 @@ export const createLibrariesRouter = (db: DatabaseService) => {
     try {
       const userToken = req.user?.plexToken;
       const libraries = await plexService.getLibraries(userToken);
-      res.json({ libraries });
+      return res.json({ libraries });
     } catch (error) {
       logger.error('Failed to get libraries', { error });
-      res.status(500).json({ error: 'Failed to get libraries' });
+      return res.status(500).json({ error: 'Failed to get libraries' });
     }
   });
 
@@ -26,10 +26,10 @@ export const createLibrariesRouter = (db: DatabaseService) => {
       const { libraryKey } = req.params;
       const userToken = req.user?.plexToken;
       const content = await plexService.getLibraryContent(libraryKey, userToken);
-      res.json({ content });
+      return res.json({ content });
     } catch (error) {
       logger.error('Failed to get library content', { error });
-      res.status(500).json({ error: 'Failed to get library content' });
+      return res.status(500).json({ error: 'Failed to get library content' });
     }
   });
 

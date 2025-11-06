@@ -180,7 +180,6 @@ export class PlexService {
 
   // Library operations
   async getLibraries(userToken?: string): Promise<PlexLibrary[]> {
-    const token = userToken || config.plex.token;
     if (!this.client) {
       throw new Error('Plex client not initialized');
     }
@@ -213,7 +212,6 @@ export class PlexService {
   }
 
   async getLibraryContent(libraryKey: string, userToken?: string): Promise<PlexMedia[]> {
-    const token = userToken || config.plex.token;
     if (!this.client) {
       throw new Error('Plex client not initialized');
     }
@@ -242,7 +240,6 @@ export class PlexService {
   }
 
   async getMediaMetadata(ratingKey: string, userToken?: string): Promise<PlexMedia> {
-    const token = userToken || config.plex.token;
     if (!this.client) {
       throw new Error('Plex client not initialized');
     }
@@ -271,7 +268,6 @@ export class PlexService {
   }
 
   async search(query: string, userToken?: string): Promise<PlexMedia[]> {
-    const token = userToken || config.plex.token;
     if (!this.client) {
       throw new Error('Plex client not initialized');
     }
