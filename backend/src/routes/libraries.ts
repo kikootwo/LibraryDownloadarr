@@ -11,7 +11,9 @@ export const createLibrariesRouter = (db: DatabaseService) => {
   // Get all libraries
   router.get('/', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const userToken = req.user?.plexToken;
+      // Use user's Plex token if available (for Plex OAuth users)
+      // Otherwise use server's admin token from settings (for admin users)
+      const userToken = req.user?.plexToken || db.getSetting('plex_token') || undefined;
       const libraries = await plexService.getLibraries(userToken);
       return res.json({ libraries });
     } catch (error) {
@@ -24,7 +26,9 @@ export const createLibrariesRouter = (db: DatabaseService) => {
   router.get('/:libraryKey/content', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { libraryKey } = req.params;
-      const userToken = req.user?.plexToken;
+      // Use user's Plex token if available (for Plex OAuth users)
+      // Otherwise use server's admin token from settings (for admin users)
+      const userToken = req.user?.plexToken || db.getSetting('plex_token') || undefined;
       const content = await plexService.getLibraryContent(libraryKey, userToken);
       return res.json({ content });
     } catch (error) {

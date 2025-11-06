@@ -151,15 +151,16 @@ export class PlexService {
     try {
       const response = await axios.post(
         'https://plex.tv/api/v2/pins',
-        {
-          strong: true,
-          'X-Plex-Product': config.plex.product,
-          'X-Plex-Client-Identifier': config.plex.clientIdentifier,
-        },
+        { strong: true },
         {
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
+            'X-Plex-Product': config.plex.product,
+            'X-Plex-Client-Identifier': config.plex.clientIdentifier,
+          },
+          params: {
+            strong: true,
           },
         }
       );
