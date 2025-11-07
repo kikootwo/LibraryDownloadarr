@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="64" fill="#e87c03"/>
+  <g transform="translate(256, 256)">
+    <!-- Download arrow -->
+    <path d="M -50 -80 L -50 60 L -80 60 L 0 120 L 80 60 L 50 60 L 50 -80 Z" fill="#fff" stroke="#0f0f23" stroke-width="8"/>
+    <!-- Media library shelf -->
+    <rect x="-120" y="-20" width="240" height="20" fill="#fff" opacity="0.3"/>
+    <rect x="-120" y="20" width="240" height="20" fill="#fff" opacity="0.3"/>
+    <rect x="-120" y="60" width="240" height="20" fill="#fff" opacity="0.3"/>
+  </g>
+</svg>

@@ -19,6 +19,58 @@ export const Login: React.FC = () => {
     }
   }, [token, user, navigate]);
 
+  // Handle mobile Plex auth return
+  useEffect(() => {
+    const plexAuthInProgress = sessionStorage.getItem('plexAuthInProgress');
+    const plexPinId = sessionStorage.getItem('plexPinId');
+
+    if (plexAuthInProgress === 'true' && plexPinId) {
+      setIsPlexLoading(true);
+
+      // Clear session storage
+      sessionStorage.removeItem('plexAuthInProgress');
+      const pinId = parseInt(plexPinId, 10);
+      sessionStorage.removeItem('plexPinId');
+
+      // Poll for authentication
+      const maxAttempts = 60;
+      let attempts = 0;
+
+      const pollInterval = setInterval(async () => {
+        attempts++;
+
+        try {
+          const response = await api.authenticatePlexPin(pinId);
+          clearInterval(pollInterval);
+          setUser(response.user);
+          setToken(response.token);
+          setIsPlexLoading(false);
+          navigate('/');
+        } catch (err: any) {
+          if (err.response?.status === 403) {
+            clearInterval(pollInterval);
+            setError(err.response?.data?.error || 'Access denied. You do not have access to this Plex server.');
+            setIsPlexLoading(false);
+            return;
+          }
+
+          if (err.response?.status === 500) {
+            clearInterval(pollInterval);
+            setError(err.response?.data?.error || 'Server error. Please contact the administrator.');
+            setIsPlexLoading(false);
+            return;
+          }
+
+          if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setError('Plex authentication timeout. Please try again.');
+            setIsPlexLoading(false);
+          }
+        }
+      }, 2000);
+    }
+  }, [navigate, setUser, setToken]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -42,7 +94,19 @@ export const Login: React.FC = () => {
       // Generate PIN
       const pin = await api.generatePlexPin();
 
-      // Open Plex auth in new window
+      // Detect mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      // Store PIN ID for mobile redirect flow
+      if (isMobile) {
+        sessionStorage.setItem('plexPinId', pin.id.toString());
+        sessionStorage.setItem('plexAuthInProgress', 'true');
+        // On mobile, navigate to Plex auth (will come back to same page)
+        window.location.href = pin.url;
+        return;
+      }
+
+      // Desktop: Open Plex auth in popup
       window.open(pin.url, '_blank', 'width=600,height=700');
 
       // Poll for authentication
