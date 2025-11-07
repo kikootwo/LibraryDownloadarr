@@ -3,8 +3,10 @@ import { Header } from '../components/Header';
 import { Sidebar } from '../components/Sidebar';
 import { api } from '../services/api';
 import { Settings as SettingsType } from '../types';
+import { useMobileMenu } from '../hooks/useMobileMenu';
 
 export const Settings: React.FC = () => {
+  const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMobileMenu();
   const [settings, setSettings] = useState<SettingsType>({
     plexUrl: '',
     hasPlexToken: false,
@@ -147,10 +149,10 @@ export const Settings: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-8 flex items-center justify-center">
+        <Header onMenuClick={toggleMobileMenu} />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+          <main className="flex-1 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
             <div className="text-gray-400">Loading...</div>
           </main>
         </div>
@@ -160,29 +162,29 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8">
+      <Header onMenuClick={toggleMobileMenu} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="max-w-3xl">
-            <h1 className="text-3xl font-bold mb-6">Settings</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Settings</h1>
 
-            <div className="card p-6">
-              <form onSubmit={handleSave} className="space-y-6">
+            <div className="card p-4 md:p-6">
+              <form onSubmit={handleSave} className="space-y-4 md:space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-4">Plex Server Configuration</h2>
+                  <h2 className="text-xl md:text-2xl font-semibold mb-4">Plex Server Configuration</h2>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Plex Server URL</label>
+                      <label className="block text-sm md:text-base font-medium mb-2">Plex Server URL</label>
                       <input
                         type="text"
-                        className="input"
+                        className="input text-sm md:text-base"
                         placeholder="http://127.0.0.1:32400"
                         value={plexUrl}
                         onChange={(e) => setPlexUrl(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs md:text-sm text-gray-500 mt-1">
                         The URL of your Plex Media Server. For local Docker containers, use:
                         <br />
                         • <code className="text-gray-400">http://127.0.0.1:32400</code> or <code className="text-gray-400">http://localhost:32400</code>
@@ -192,31 +194,31 @@ export const Settings: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">Plex Token</label>
+                      <label className="block text-sm md:text-base font-medium mb-2">Plex Token</label>
                       <input
                         type="password"
-                        className="input"
+                        className="input text-sm md:text-base"
                         placeholder={
                           settings.hasPlexToken ? 'Token configured (enter new to update)' : 'Enter token'
                         }
                         value={plexToken}
                         onChange={(e) => setPlexToken(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs md:text-sm text-gray-500 mt-1">
                         Your Plex authentication token (admin token for server access)
                       </p>
                     </div>
 
                     {settings.plexServerName && (
                       <div>
-                        <label className="block text-sm font-medium mb-2">Configured Server</label>
+                        <label className="block text-sm md:text-base font-medium mb-2">Configured Server</label>
                         <input
                           type="text"
-                          className="input bg-dark-200"
+                          className="input text-sm md:text-base bg-dark-200"
                           value={settings.plexServerName}
                           readOnly
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs md:text-sm text-gray-500 mt-1">
                           Server identity is automatically detected when you save your settings.
                           Users logging in via Plex OAuth will only be granted access if they have permission to this server.
                         </p>
@@ -227,7 +229,7 @@ export const Settings: React.FC = () => {
 
                 {message && (
                   <div
-                    className={`px-4 py-3 rounded-lg text-sm ${
+                    className={`px-4 py-3 rounded-lg text-xs md:text-sm ${
                       message.type === 'success'
                         ? 'bg-green-500/10 border border-green-500/20 text-green-400'
                         : 'bg-red-500/10 border border-red-500/20 text-red-400'
@@ -237,8 +239,8 @@ export const Settings: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex gap-4">
-                  <button type="submit" disabled={isSaving} className="btn-primary">
+                <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                  <button type="submit" disabled={isSaving} className="btn-primary text-sm md:text-base">
                     {isSaving ? 'Saving...' : 'Save Settings'}
                   </button>
 
@@ -246,7 +248,7 @@ export const Settings: React.FC = () => {
                     type="button"
                     onClick={handleTestConnection}
                     disabled={isTesting || !(plexUrl || settings.plexUrl)}
-                    className="btn-secondary"
+                    className="btn-secondary text-sm md:text-base"
                   >
                     {isTesting ? 'Testing...' : 'Test Connection'}
                   </button>
@@ -254,14 +256,14 @@ export const Settings: React.FC = () => {
               </form>
             </div>
 
-            <div className="card p-6 mt-6">
-              <h2 className="text-xl font-semibold mb-4">Change Password</h2>
-              <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="card p-4 md:p-6 mt-4 md:mt-6">
+              <h2 className="text-xl md:text-2xl font-semibold mb-4">Change Password</h2>
+              <form onSubmit={handleChangePassword} className="space-y-3 md:space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Current Password</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">Current Password</label>
                   <input
                     type="password"
-                    className="input"
+                    className="input text-sm md:text-base"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Enter current password"
@@ -269,10 +271,10 @@ export const Settings: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">New Password</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">New Password</label>
                   <input
                     type="password"
-                    className="input"
+                    className="input text-sm md:text-base"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password (min. 6 characters)"
@@ -280,10 +282,10 @@ export const Settings: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Confirm New Password</label>
+                  <label className="block text-sm md:text-base font-medium mb-2">Confirm New Password</label>
                   <input
                     type="password"
-                    className="input"
+                    className="input text-sm md:text-base"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
@@ -292,7 +294,7 @@ export const Settings: React.FC = () => {
 
                 {passwordMessage && (
                   <div
-                    className={`px-4 py-3 rounded-lg text-sm ${
+                    className={`px-4 py-3 rounded-lg text-xs md:text-sm ${
                       passwordMessage.type === 'success'
                         ? 'bg-green-500/10 border border-green-500/20 text-green-400'
                         : 'bg-red-500/10 border border-red-500/20 text-red-400'
@@ -305,16 +307,16 @@ export const Settings: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isChangingPassword}
-                  className="btn-primary"
+                  className="btn-primary text-sm md:text-base"
                 >
                   {isChangingPassword ? 'Changing Password...' : 'Change Password'}
                 </button>
               </form>
             </div>
 
-            <div className="card p-6 mt-6">
-              <h2 className="text-xl font-semibold mb-4">About</h2>
-              <div className="space-y-2 text-sm text-gray-400">
+            <div className="card p-4 md:p-6 mt-4 md:mt-6">
+              <h2 className="text-xl md:text-2xl font-semibold mb-4">About</h2>
+              <div className="space-y-2 text-xs md:text-sm text-gray-400">
                 <p>
                   <span className="font-medium text-gray-300">PlexDownloadarr</span> v1.0.0
                 </p>

@@ -4,8 +4,10 @@ import { Sidebar } from '../components/Sidebar';
 import { api } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { useMobileMenu } from '../hooks/useMobileMenu';
 
 export const DownloadHistory: React.FC = () => {
+  const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMobileMenu();
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,15 +55,15 @@ export const DownloadHistory: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8">
+      <Header onMenuClick={toggleMobileMenu} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Download History</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Download History</h1>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-6">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-4 md:mb-6 text-sm md:text-base">
                 {error}
               </div>
             )}
@@ -69,8 +71,8 @@ export const DownloadHistory: React.FC = () => {
             {isLoading ? (
               <div className="text-center text-gray-400 py-12">Loading...</div>
             ) : history.length === 0 ? (
-              <div className="card p-8 text-center">
-                <p className="text-gray-400">No downloads yet</p>
+              <div className="card p-6 md:p-8 text-center">
+                <p className="text-sm md:text-base text-gray-400">No downloads yet</p>
               </div>
             ) : (
               <div className="card overflow-hidden">
@@ -78,16 +80,16 @@ export const DownloadHistory: React.FC = () => {
                   <table className="w-full">
                     <thead className="bg-dark-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                           User
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                           Media Title
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                           File Size
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                           Downloaded At
                         </th>
                       </tr>
@@ -95,14 +97,14 @@ export const DownloadHistory: React.FC = () => {
                     <tbody className="divide-y divide-dark-50">
                       {history.map((item) => (
                         <tr key={item.id} className="hover:bg-dark-200/50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-xs md:text-sm">
                             {item.username || 'Unknown User'}
                           </td>
-                          <td className="px-6 py-4 text-sm">{item.media_title}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                          <td className="px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm">{item.media_title}</td>
+                          <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-400">
                             {formatFileSize(item.file_size)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                          <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-400">
                             {formatDate(item.downloaded_at)}
                           </td>
                         </tr>

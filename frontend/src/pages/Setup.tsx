@@ -32,48 +32,48 @@ export const Setup: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-dark p-4">
       <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent mb-2">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent mb-2">
             PlexDownloadarr
           </h1>
-          <p className="text-gray-400">Initial Setup</p>
+          <p className="text-sm md:text-base text-gray-400">Initial Setup</p>
         </div>
 
-        <div className="card p-8">
+        <div className="card p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Admin Username</label>
+              <label className="block text-sm md:text-base font-medium mb-2">Admin Username</label>
               <input
                 type="text"
                 required
-                className="input"
+                className="input text-sm md:text-base"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Admin Password</label>
+              <label className="block text-sm md:text-base font-medium mb-2">Admin Password</label>
               <input
                 type="password"
                 required
-                className="input"
+                className="input text-sm md:text-base"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
             </div>
 
-            <div className="text-sm text-gray-400 mt-4">
+            <div className="text-xs md:text-sm text-gray-400 mt-4">
               You can configure your Plex server connection in the Settings page after setup.
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-lg text-xs md:text-sm">
                 {error}
               </div>
             )}
 
-            <button type="submit" disabled={isLoading} className="btn-primary w-full">
+            <button type="submit" disabled={isLoading} className="btn-primary w-full text-sm md:text-base">
               {isLoading ? 'Setting up...' : 'Complete Setup'}
             </button>
           </form>

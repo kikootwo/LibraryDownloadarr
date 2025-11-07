@@ -5,10 +5,12 @@ import { Sidebar } from '../components/Sidebar';
 import { api } from '../services/api';
 import { MediaItem } from '../types';
 import { useDownloads } from '../contexts/DownloadContext';
+import { useMobileMenu } from '../hooks/useMobileMenu';
 
 export const MediaDetail: React.FC = () => {
   const { ratingKey } = useParams<{ ratingKey: string }>();
   const { startDownload, downloads } = useDownloads();
+  const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMobileMenu();
   const [media, setMedia] = useState<MediaItem | null>(null);
   const [seasons, setSeasons] = useState<MediaItem[]>([]);
   const [episodesBySeason, setEpisodesBySeason] = useState<Record<string, MediaItem[]>>({});
@@ -112,10 +114,10 @@ export const MediaDetail: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-8 flex items-center justify-center">
+        <Header onMenuClick={toggleMobileMenu} />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+          <main className="flex-1 p-4 md:p-8 overflow-y-auto flex items-center justify-center">
             <div className="text-gray-400">Loading...</div>
           </main>
         </div>
@@ -126,10 +128,10 @@ export const MediaDetail: React.FC = () => {
   if (error || !media) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-8">
+        <Header onMenuClick={toggleMobileMenu} />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+          <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg">
               {error || 'Media not found'}
             </div>
@@ -144,34 +146,34 @@ export const MediaDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1">
+      <Header onMenuClick={toggleMobileMenu} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+        <main className="flex-1 overflow-y-auto">
           {/* Backdrop */}
           {backdropUrl && (
             <div
-              className="h-96 bg-cover bg-center relative"
+              className="h-48 md:h-96 bg-cover bg-center relative"
               style={{ backgroundImage: `url(${backdropUrl})` }}
             >
               <div className="absolute inset-0 bg-gradient-to-t from-dark via-dark/60 to-transparent" />
             </div>
           )}
 
-          <div className={`p-8 relative z-10 ${backdropUrl ? '-mt-48' : ''}`}>
+          <div className={`p-4 md:p-8 relative z-10 ${backdropUrl ? '-mt-24 md:-mt-48' : ''}`}>
             <div className="max-w-7xl mx-auto">
-              <div className="flex flex-col md:flex-row gap-8">
+              <div className="flex flex-col md:flex-row gap-4 md:gap-8">
                 {/* Poster */}
                 <div className="flex-shrink-0">
                   {posterUrl ? (
                     <img
                       src={posterUrl}
                       alt={media.title}
-                      className="w-64 rounded-lg shadow-2xl"
+                      className="w-full max-w-[200px] md:w-64 rounded-lg shadow-2xl"
                     />
                   ) : (
-                    <div className="w-64 h-96 bg-dark-200 rounded-lg flex items-center justify-center">
-                      <span className="text-6xl">
+                    <div className="w-full max-w-[200px] md:w-64 h-72 md:h-96 bg-dark-200 rounded-lg flex items-center justify-center">
+                      <span className="text-4xl md:text-6xl">
                         {media.type === 'movie' ? '🎬' : '📺'}
                       </span>
                     </div>
@@ -180,9 +182,9 @@ export const MediaDetail: React.FC = () => {
 
                 {/* Details */}
                 <div className="flex-1">
-                  <h1 className="text-4xl font-bold mb-2">{media.title}</h1>
+                  <h1 className="text-2xl md:text-4xl font-bold mb-2">{media.title}</h1>
 
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-400 mb-4">
+                  <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-400 mb-4">
                     {media.year && <span>{media.year}</span>}
                     {media.contentRating && <span>{media.contentRating}</span>}
                     {media.duration && <span>{formatDuration(media.duration)}</span>}
@@ -190,19 +192,19 @@ export const MediaDetail: React.FC = () => {
                   </div>
 
                   {media.summary && (
-                    <p className="text-gray-300 mb-6 leading-relaxed">{media.summary}</p>
+                    <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed">{media.summary}</p>
                   )}
 
                   {media.studio && (
                     <div className="mb-4">
-                      <span className="text-sm text-gray-500">Studio: </span>
-                      <span className="text-sm text-gray-300">{media.studio}</span>
+                      <span className="text-xs md:text-sm text-gray-500">Studio: </span>
+                      <span className="text-xs md:text-sm text-gray-300">{media.studio}</span>
                     </div>
                   )}
 
                   {/* Download Options */}
-                  <div className="mt-8">
-                    <h2 className="text-2xl font-semibold mb-4">Download</h2>
+                  <div className="mt-4 md:mt-8">
+                    <h2 className="text-xl md:text-2xl font-semibold mb-4">Download</h2>
 
                     {media.type === 'album' ? (
                       // Album (Audiobook) - Show tracks
@@ -211,15 +213,15 @@ export const MediaDetail: React.FC = () => {
                           {tracks.map((track, index) => (
                             <div
                               key={track.ratingKey}
-                              className="card p-3 flex items-center justify-between"
+                              className="card p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0"
                             >
                               <div className="flex items-center space-x-3">
-                                <div className="text-gray-400 font-mono text-sm w-8">
+                                <div className="text-gray-400 font-mono text-sm w-6 md:w-8">
                                   {index + 1}.
                                 </div>
                                 <div>
-                                  <div className="font-medium">{track.title}</div>
-                                  <div className="text-sm text-gray-400">
+                                  <div className="font-medium text-sm md:text-base">{track.title}</div>
+                                  <div className="text-xs md:text-sm text-gray-400">
                                     {track.duration && formatDuration(track.duration)}
                                     {track.Media?.[0]?.Part?.[0]?.size && (
                                       <> • {formatFileSize(track.Media[0].Part[0].size)}</>
@@ -268,19 +270,19 @@ export const MediaDetail: React.FC = () => {
                           {episodesBySeason[ratingKey].map((episode: MediaItem) => (
                             <div
                               key={episode.ratingKey}
-                              className="card p-3 flex items-center justify-between"
+                              className="card p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0"
                             >
                               <div className="flex items-center space-x-3">
                                 {episode.thumb && (
                                   <img
                                     src={api.getThumbnailUrl(episode.ratingKey, episode.thumb)}
                                     alt={episode.title}
-                                    className="w-24 h-16 object-cover rounded"
+                                    className="w-20 h-12 md:w-24 md:h-16 object-cover rounded"
                                   />
                                 )}
                                 <div>
-                                  <div className="font-medium">{episode.title}</div>
-                                  <div className="text-sm text-gray-400">
+                                  <div className="font-medium text-sm md:text-base">{episode.title}</div>
+                                  <div className="text-xs md:text-sm text-gray-400">
                                     {episode.duration && formatDuration(episode.duration)}
                                     {episode.Media?.[0]?.Part?.[0]?.size && (
                                       <> • {formatFileSize(episode.Media[0].Part[0].size)}</>
@@ -330,20 +332,20 @@ export const MediaDetail: React.FC = () => {
                             <div key={season.ratingKey} className="card">
                               <button
                                 onClick={() => toggleSeason(season.ratingKey)}
-                                className="w-full p-4 flex items-center justify-between hover:bg-dark-200 transition-colors"
+                                className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-dark-200 transition-colors"
                               >
-                                <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-3 md:space-x-4">
                                   {season.thumb && (
                                     <img
                                       src={api.getThumbnailUrl(season.ratingKey, season.thumb)}
                                       alt={season.title}
-                                      className="w-16 h-24 object-cover rounded"
+                                      className="w-12 h-18 md:w-16 md:h-24 object-cover rounded"
                                     />
                                   )}
                                   <div className="text-left">
-                                    <div className="font-medium text-lg">{season.title}</div>
+                                    <div className="font-medium text-base md:text-lg">{season.title}</div>
                                     {season.summary && (
-                                      <div className="text-sm text-gray-400 line-clamp-2">
+                                      <div className="text-xs md:text-sm text-gray-400 line-clamp-2">
                                         {season.summary}
                                       </div>
                                     )}
@@ -357,24 +359,24 @@ export const MediaDetail: React.FC = () => {
                               </button>
 
                               {expandedSeasons[season.ratingKey] && (
-                                <div className="border-t border-dark-50 p-4 space-y-2">
+                                <div className="border-t border-dark-50 p-3 md:p-4 space-y-2">
                                   {episodesBySeason[season.ratingKey] ? (
                                     episodesBySeason[season.ratingKey].map((episode) => (
                                       <div
                                         key={episode.ratingKey}
-                                        className="card p-3 flex items-center justify-between"
+                                        className="card p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0"
                                       >
                                         <div className="flex items-center space-x-3">
                                           {episode.thumb && (
                                             <img
                                               src={api.getThumbnailUrl(episode.ratingKey, episode.thumb)}
                                               alt={episode.title}
-                                              className="w-24 h-16 object-cover rounded"
+                                              className="w-20 h-12 md:w-24 md:h-16 object-cover rounded"
                                             />
                                           )}
                                           <div>
-                                            <div className="font-medium">{episode.title}</div>
-                                            <div className="text-sm text-gray-400">
+                                            <div className="font-medium text-sm md:text-base">{episode.title}</div>
+                                            <div className="text-xs md:text-sm text-gray-400">
                                               {episode.duration && formatDuration(episode.duration)}
                                               {episode.Media?.[0]?.Part?.[0]?.size && (
                                                 <> • {formatFileSize(episode.Media[0].Part[0].size)}</>
@@ -428,13 +430,13 @@ export const MediaDetail: React.FC = () => {
                       media.Media && media.Media.length > 0 ? (
                         <div className="space-y-4">
                           {media.Media.map((mediaPart, idx) => (
-                            <div key={idx} className="card p-4">
-                              <div className="flex items-center justify-between">
+                            <div key={idx} className="card p-4 md:p-6">
+                              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0">
                                 <div>
-                                  <div className="font-medium mb-1">
+                                  <div className="font-medium text-sm md:text-base mb-1">
                                     {mediaPart.videoResolution} - {mediaPart.videoCodec.toUpperCase()}
                                   </div>
-                                  <div className="text-sm text-gray-400">
+                                  <div className="text-xs md:text-sm text-gray-400">
                                     {mediaPart.width}x{mediaPart.height} • {mediaPart.container.toUpperCase()}
                                     {mediaPart.Part[0]?.size && (
                                       <> • {formatFileSize(mediaPart.Part[0].size)}</>

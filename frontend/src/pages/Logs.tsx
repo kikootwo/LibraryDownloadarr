@@ -4,6 +4,7 @@ import { Header } from '../components/Header';
 import { Sidebar } from '../components/Sidebar';
 import { api } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
+import { useMobileMenu } from '../hooks/useMobileMenu';
 
 interface LogEntry {
   timestamp: string;
@@ -13,6 +14,7 @@ interface LogEntry {
 }
 
 export const Logs: React.FC = () => {
+  const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMobileMenu();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -89,27 +91,27 @@ export const Logs: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8">
+      <Header onMenuClick={toggleMobileMenu} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-3xl font-bold">Application Logs</h1>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold">Application Logs</h1>
               <button
                 onClick={() => loadLogs()}
-                className="btn-primary"
+                className="btn-primary text-sm md:text-base"
               >
                 🔄 Refresh
               </button>
             </div>
 
             {/* Filters */}
-            <div className="card p-4 mb-6">
-              <div className="flex flex-col md:flex-row gap-4">
+            <div className="card p-4 md:p-6 mb-4 md:mb-6">
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                 {/* Level Filter */}
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-xs md:text-sm font-medium text-gray-400 mb-2">
                     Log Level
                   </label>
                   <select
@@ -118,7 +120,7 @@ export const Logs: React.FC = () => {
                       setLevel(e.target.value);
                       setPage(1);
                     }}
-                    className="input w-full"
+                    className="input w-full text-sm md:text-base"
                   >
                     <option value="all">All Levels</option>
                     <option value="error">Error</option>
@@ -130,7 +132,7 @@ export const Logs: React.FC = () => {
 
                 {/* Search Filter */}
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-xs md:text-sm font-medium text-gray-400 mb-2">
                     Search
                   </label>
                   <form onSubmit={handleSearch} className="flex gap-2">
@@ -139,9 +141,9 @@ export const Logs: React.FC = () => {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search in logs..."
-                      className="input flex-1"
+                      className="input flex-1 text-sm md:text-base"
                     />
-                    <button type="submit" className="btn-primary">
+                    <button type="submit" className="btn-primary text-sm md:text-base">
                       Search
                     </button>
                   </form>
@@ -149,7 +151,7 @@ export const Logs: React.FC = () => {
               </div>
 
               {/* Stats */}
-              <div className="mt-4 text-sm text-gray-400">
+              <div className="mt-4 text-xs md:text-sm text-gray-400">
                 Showing {logs.length} of {total} logs
                 {search && ` (filtered by "${search}")`}
                 {level !== 'all' && ` (level: ${level})`}
@@ -157,7 +159,7 @@ export const Logs: React.FC = () => {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-6">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-4 md:mb-6 text-sm md:text-base">
                 {error}
               </div>
             )}
@@ -165,9 +167,9 @@ export const Logs: React.FC = () => {
             {isLoading ? (
               <div className="text-center text-gray-400 py-12">Loading logs...</div>
             ) : logs.length === 0 ? (
-              <div className="card p-8 text-center">
-                <p className="text-gray-400">No logs found</p>
-                <p className="text-sm text-gray-500 mt-2">
+              <div className="card p-6 md:p-8 text-center">
+                <p className="text-sm md:text-base text-gray-400">No logs found</p>
+                <p className="text-xs md:text-sm text-gray-500 mt-2">
                   Logs are only available when file logging is enabled.
                 </p>
               </div>
@@ -178,22 +180,22 @@ export const Logs: React.FC = () => {
                   {logs.map((log, index) => (
                     <div
                       key={index}
-                      className="card p-4 hover:bg-dark-200 transition-colors"
+                      className="card p-3 md:p-4 hover:bg-dark-200 transition-colors"
                     >
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-start gap-2 md:gap-4">
                         {/* Level Badge */}
-                        <div className={`px-3 py-1 rounded-lg text-xs font-semibold uppercase border ${getLevelColor(log.level)}`}>
+                        <div className={`px-2 md:px-3 py-1 rounded-lg text-xs font-semibold uppercase border ${getLevelColor(log.level)}`}>
                           {log.level}
                         </div>
 
                         {/* Log Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm text-gray-400">
+                            <span className="text-xs md:text-sm text-gray-400">
                               {formatTimestamp(log.timestamp)}
                             </span>
                           </div>
-                          <div className="text-white break-words">
+                          <div className="text-sm md:text-base text-white break-words">
                             {log.message}
                           </div>
                           {(() => {
@@ -221,15 +223,15 @@ export const Logs: React.FC = () => {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-8">
+                  <div className="flex items-center justify-center gap-2 mt-6 md:mt-8">
                     <button
                       onClick={() => setPage(Math.max(1, page - 1))}
                       disabled={page === 1}
-                      className="btn disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 md:gap-2">
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
                         if (totalPages <= 5) {
@@ -246,7 +248,7 @@ export const Logs: React.FC = () => {
                           <button
                             key={pageNum}
                             onClick={() => setPage(pageNum)}
-                            className={`w-10 h-10 rounded-lg transition-colors ${
+                            className={`w-8 h-8 md:w-10 md:h-10 rounded-lg transition-colors text-sm md:text-base ${
                               page === pageNum
                                 ? 'bg-primary-500 text-white'
                                 : 'bg-dark-200 text-gray-400 hover:bg-dark-300'
@@ -260,7 +262,7 @@ export const Logs: React.FC = () => {
                     <button
                       onClick={() => setPage(Math.min(totalPages, page + 1))}
                       disabled={page === totalPages}
-                      className="btn disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
