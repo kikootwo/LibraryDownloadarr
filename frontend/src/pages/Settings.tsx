@@ -279,7 +279,7 @@ export const Settings: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleTestConnection}
-                    disabled={isTesting || !settings.plexUrl}
+                    disabled={isTesting || !(plexUrl || settings.plexUrl)}
                     className="btn-secondary"
                   >
                     {isTesting ? 'Testing...' : 'Test Connection'}
