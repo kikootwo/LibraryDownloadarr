@@ -5,12 +5,14 @@ import { Sidebar } from '../components/Sidebar';
 import { MediaGrid } from '../components/MediaGrid';
 import { api } from '../services/api';
 import { MediaItem } from '../types';
+import { useMobileMenu } from '../hooks/useMobileMenu';
 
 export const LibraryView: React.FC = () => {
   const { libraryKey } = useParams<{ libraryKey: string }>();
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMobileMenu();
 
   useEffect(() => {
     if (libraryKey) {
@@ -42,12 +44,12 @@ export const LibraryView: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8">
+      <Header onMenuClick={toggleMobileMenu} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 md:px-4 py-2 md:py-3 rounded-lg mb-4 md:mb-6 text-sm md:text-base">
               {error}
             </div>
           )}

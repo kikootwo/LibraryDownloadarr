@@ -80,6 +80,13 @@ class ApiClient {
     localStorage.removeItem('token');
   }
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await this.client.post('/auth/change-password', {
+      currentPassword,
+      newPassword,
+    });
+  }
+
   // Library endpoints
   async getLibraries(): Promise<Library[]> {
     const response = await this.client.get<{ libraries: Library[] }>('/libraries');
@@ -175,6 +182,18 @@ class ApiClient {
       plexToken,
     });
     return response.data.connected;
+  }
+
+  // Logs endpoints
+  async getLogs(params: {
+    level?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<{ logs: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    const response = await this.client.get('/logs', { params });
+    return response.data;
   }
 }
 

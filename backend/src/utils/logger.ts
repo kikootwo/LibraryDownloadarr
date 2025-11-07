@@ -12,6 +12,7 @@ export const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'plexdownloadarr' },
   transports: [
+    // Console output
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
@@ -24,20 +25,14 @@ export const logger = winston.createLogger({
         })
       ),
     }),
-  ],
-});
-
-// Create file transport in production
-if (process.env.NODE_ENV === 'production') {
-  logger.add(
+    // Error log file
     new winston.transports.File({
       filename: 'logs/error.log',
       level: 'error',
-    })
-  );
-  logger.add(
+    }),
+    // Combined log file
     new winston.transports.File({
       filename: 'logs/combined.log',
-    })
-  );
-}
+    }),
+  ],
+});

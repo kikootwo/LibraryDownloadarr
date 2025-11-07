@@ -9,26 +9,65 @@ export const createMediaRouter = (db: DatabaseService) => {
   const router = Router();
   const authMiddleware = createAuthMiddleware(db);
 
+  // Helper function to format media title for download logs
+  const formatMediaTitle = (metadata: any, libraryTitle?: string): string => {
+    const type = metadata.type;
+    const library = libraryTitle || 'Unknown Library';
+
+    if (type === 'episode') {
+      // Format: "{Library} - {ShowTitle} - {SeasonTitle} - E{##} - {EpisodeName}"
+      const showName = metadata.grandparentTitle || 'Unknown Show';
+      const seasonTitle = metadata.parentTitle || 'Unknown Season';
+      const episodeNum = metadata.index ? String(metadata.index).padStart(2, '0') : '00';
+      const episodeTitle = metadata.title || 'Unknown Episode';
+      return `${library} - ${showName} - ${seasonTitle} - E${episodeNum} - ${episodeTitle}`;
+    }
+
+    if (type === 'track') {
+      // Format: "{Library} - {AlbumTitle} - {TrackName}"
+      const albumName = metadata.parentTitle || 'Unknown Album';
+      const trackTitle = metadata.title || 'Unknown Track';
+      return `${library} - ${albumName} - ${trackTitle}`;
+    }
+
+    if (type === 'movie') {
+      // Format: "{Library} - {MovieTitle}"
+      return `${library} - ${metadata.title || 'Unknown Movie'}`;
+    }
+
+    // For seasons, albums, or anything else: "{Library} - {Title}"
+    return `${library} - ${metadata.title || 'Unknown Media'}`;
+  };
+
   // Helper function to get user credentials with proper fallback
+  // SECURITY: Always use admin's server URL, never user-specific URLs
   const getUserCredentials = (req: AuthRequest): { token: string | undefined; serverUrl: string; error?: string } => {
     const userToken = req.user?.plexToken;
-    const userServerUrl = req.user?.serverUrl;
     const isAdmin = req.user?.isAdmin;
     const adminToken = db.getSetting('plex_token') || undefined;
     const adminUrl = db.getSetting('plex_url') || '';
 
-    // If user has both their own token and serverUrl, use them
-    if (userToken && userServerUrl) {
-      return { token: userToken, serverUrl: userServerUrl };
+    // All users (including admins) must use admin's configured server URL
+    // This prevents users from using the app to download from arbitrary Plex servers
+    if (!adminUrl) {
+      return {
+        token: undefined,
+        serverUrl: '',
+        error: 'Plex server not configured. Please contact administrator.'
+      };
     }
 
-    // Only admins can fall back to admin credentials
-    // Non-admin users MUST have their own credentials
-    if (isAdmin) {
+    // If user has their own token, use it with admin's server URL
+    if (userToken) {
+      return { token: userToken, serverUrl: adminUrl };
+    }
+
+    // Admin can fall back to admin token (for setup/testing)
+    if (isAdmin && adminToken) {
       return { token: adminToken, serverUrl: adminUrl };
     }
 
-    // Non-admin user without their own credentials = no access
+    // User without token = no access
     return {
       token: undefined,
       serverUrl: '',
@@ -100,6 +139,60 @@ export const createMediaRouter = (db: DatabaseService) => {
     }
   });
 
+  // Helper function to calculate relevance score
+  const calculateRelevanceScore = (item: any, query: string): number => {
+    const queryLower = query.toLowerCase();
+    const title = (item.title || '').toLowerCase();
+    const originalTitle = (item.originalTitle || '').toLowerCase();
+    const year = item.year?.toString() || '';
+    const summary = (item.summary || '').toLowerCase();
+
+    let score = 0;
+
+    // Exact title match: highest score
+    if (title === queryLower) {
+      score += 100;
+    }
+    // Title starts with query
+    else if (title.startsWith(queryLower)) {
+      score += 80;
+    }
+    // Title contains query
+    else if (title.includes(queryLower)) {
+      score += 60;
+    }
+
+    // Original title matches
+    if (originalTitle.includes(queryLower)) {
+      score += 30;
+    }
+
+    // Year matches
+    if (year === query) {
+      score += 50;
+    }
+
+    // Summary contains query
+    if (summary.includes(queryLower)) {
+      score += 20;
+    }
+
+    // Boost movies and shows over other types
+    if (item.type === 'movie' || item.type === 'show') {
+      score += 10;
+    }
+
+    // Boost recently added items slightly
+    if (item.addedAt) {
+      const daysOld = (Date.now() - item.addedAt * 1000) / (1000 * 60 * 60 * 24);
+      if (daysOld < 30) {
+        score += 5;
+      }
+    }
+
+    return score;
+  };
+
   // Search media
   router.get('/search', authMiddleware, async (req: AuthRequest, res) => {
     try {
@@ -108,22 +201,59 @@ export const createMediaRouter = (db: DatabaseService) => {
         return res.status(400).json({ error: 'Search query is required' });
       }
 
+      if (q.trim().length < 2) {
+        return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+      }
+
       const { token, serverUrl, error } = getUserCredentials(req);
 
       if (error) {
+        logger.warn('Search access denied', { userId: req.user?.id, error });
         return res.status(403).json({ error });
       }
 
       if (!token || !serverUrl) {
+        logger.error('Search failed: Plex not configured', { userId: req.user?.id });
         return res.status(500).json({ error: 'Plex server not configured' });
       }
 
+      logger.info('Performing search', { query: q, userId: req.user?.id });
+
       plexService.setServerConnection(serverUrl, token);
-      const results = await plexService.search(q, token);
-      return res.json({ results });
-    } catch (error) {
-      logger.error('Search failed', { error });
-      return res.status(500).json({ error: 'Search failed' });
+      let results = await plexService.search(q, token);
+
+      // Ensure results is an array
+      if (!Array.isArray(results)) {
+        logger.warn('Search returned non-array results', { results });
+        results = [];
+      }
+
+      // Calculate relevance scores and sort by them
+      const scoredResults = results.map(item => ({
+        ...item,
+        _relevanceScore: calculateRelevanceScore(item, q)
+      }));
+
+      // Sort by relevance score (descending)
+      scoredResults.sort((a, b) => b._relevanceScore - a._relevanceScore);
+
+      // Remove the score field before sending to client
+      const finalResults = scoredResults.map(({ _relevanceScore, ...item }) => item);
+
+      logger.info('Search completed', { query: q, resultCount: finalResults.length });
+
+      return res.json({ results: finalResults });
+    } catch (error: any) {
+      logger.error('Search failed', {
+        error: error.message,
+        stack: error.stack,
+        query: req.query.q,
+        userId: req.user?.id
+      });
+      return res.status(500).json({
+        error: 'Search failed',
+        details: error.message
+      });
     }
   });
 
@@ -242,6 +372,24 @@ export const createMediaRouter = (db: DatabaseService) => {
       plexService.setServerConnection(serverUrl, token);
 
       const metadata = await plexService.getMediaMetadata(ratingKey, token);
+
+      // Get library information for better download title
+      let libraryTitle = metadata.librarySectionTitle || 'Unknown Library';
+      if (!libraryTitle || libraryTitle === 'Unknown Library') {
+        // Try to fetch library name from librarySectionID
+        if (metadata.librarySectionID) {
+          try {
+            const libraries = await plexService.getLibraries(token);
+            const library = libraries.find(l => l.key === metadata.librarySectionID);
+            if (library) {
+              libraryTitle = library.title;
+            }
+          } catch (err) {
+            logger.warn('Failed to fetch library info for download', { librarySectionID: metadata.librarySectionID });
+          }
+        }
+      }
+
       const downloadUrl = plexService.getDownloadUrl(partKey, token);
 
       // Stream the file through our server
@@ -256,10 +404,11 @@ export const createMediaRouter = (db: DatabaseService) => {
         ? parseInt(response.headers['content-length'], 10)
         : undefined;
 
-      // Log the download with actual file size
+      // Log the download with formatted title including library name and actual file size
+      const formattedTitle = formatMediaTitle(metadata, libraryTitle);
       db.logDownload(
         req.user!.id,
-        metadata.title,
+        formattedTitle,
         ratingKey,
         fileSize
       );
@@ -274,7 +423,7 @@ export const createMediaRouter = (db: DatabaseService) => {
 
       response.data.pipe(res);
 
-      logger.info(`Download started for ${metadata.title} by user ${req.user?.username}`);
+      logger.info(`Download started for ${formattedTitle} by user ${req.user?.username}`);
       return;
     } catch (error) {
       logger.error('Download failed', { error });

@@ -6,13 +6,11 @@ services:
     ports:
       - "5069:5069"
     environment:
-      - NODE_ENV=production
+      # Server configuration
       - PORT=5069
-      - BASE_URL=${BASE_URL:-http://localhost:5069}
-      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
-      - SESSION_SECRET=${SESSION_SECRET:-change-this-session-secret-in-production}
+      - LOG_LEVEL=info
+      # Database path (persisted to volume)
       - DATABASE_PATH=/app/data/plexdownloadarr.db
-      - LOG_LEVEL=${LOG_LEVEL:-info}
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs

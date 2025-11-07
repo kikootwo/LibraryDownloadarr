@@ -10,6 +10,7 @@ import { createAuthRouter } from './routes/auth';
 import { createLibrariesRouter } from './routes/libraries';
 import { createMediaRouter } from './routes/media';
 import { createSettingsRouter } from './routes/settings';
+import { createLogsRouter } from './routes/logs';
 
 // Initialize database
 const db = new DatabaseService(config.database.path);
@@ -49,22 +50,16 @@ app.use('/api/auth', createAuthRouter(db));
 app.use('/api/libraries', createLibrariesRouter(db));
 app.use('/api/media', createMediaRouter(db));
 app.use('/api/settings', createSettingsRouter(db));
+app.use('/api/logs', createLogsRouter(db));
 
-// Serve static files in production
-if (config.server.nodeEnv === 'production') {
-  const publicPath = path.join(__dirname, '..', 'public');
-  app.use(express.static(publicPath));
+// Serve static files (frontend)
+const publicPath = path.join(__dirname, '..', 'public');
+app.use(express.static(publicPath));
 
-  // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (_req, res) => {
-    return res.sendFile(path.join(publicPath, 'index.html'));
-  });
-} else {
-  // 404 handler for development
-  app.use((_req, res) => {
-    return res.status(404).json({ error: 'Not found' });
-  });
-}
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (_req, res) => {
+  return res.sendFile(path.join(publicPath, 'index.html'));
+});
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -75,8 +70,6 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 // Start server
 const server = app.listen(config.server.port, () => {
   logger.info(`PlexDownloadarr server started on port ${config.server.port}`);
-  logger.info(`Environment: ${config.server.nodeEnv}`);
-  logger.info(`Base URL: ${config.server.baseUrl}`);
 });
 
 // Graceful shutdown

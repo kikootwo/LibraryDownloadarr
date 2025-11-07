@@ -32,6 +32,11 @@ export interface MediaItem {
   originallyAvailableAt?: string;
   studio?: string;
   contentRating?: string;
+  // Episode/Season/Track context fields
+  grandparentTitle?: string; // Show name for episodes, Artist for tracks
+  parentTitle?: string; // Season name for episodes, Album for tracks
+  index?: number; // Episode number or Track number
+  parentIndex?: number; // Season number
   Media?: MediaPart[];
 }
 
@@ -67,4 +72,6 @@ export interface PlexPin {
 export interface Settings {
   plexUrl: string;
   hasPlexToken: boolean;
+  plexMachineId?: string;
+  plexServerName?: string;
 }

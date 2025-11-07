@@ -14,11 +14,15 @@ export const createSettingsRouter = (db: DatabaseService) => {
     try {
       const plexUrl = db.getSetting('plex_url') || '';
       const plexToken = db.getSetting('plex_token') || '';
+      const plexMachineId = db.getSetting('plex_machine_id') || '';
+      const plexServerName = db.getSetting('plex_server_name') || '';
 
       return res.json({
         settings: {
           plexUrl,
           hasPlexToken: !!plexToken,
+          plexMachineId,
+          plexServerName,
         },
       });
     } catch (error) {
@@ -39,11 +43,32 @@ export const createSettingsRouter = (db: DatabaseService) => {
         db.setSetting('plex_token', plexToken);
       }
 
-      // Update Plex service connection
+      // Update Plex service connection and auto-fetch server identity
       if (plexUrl || plexToken) {
         const url = plexUrl || db.getSetting('plex_url') || '';
         const token = plexToken || db.getSetting('plex_token') || '';
-        plexService.setServerConnection(url, token);
+
+        if (url && token) {
+          plexService.setServerConnection(url, token);
+
+          // Auto-fetch machine ID and server name
+          try {
+            const serverInfo = await plexService.getServerIdentity(token);
+
+            if (serverInfo?.machineIdentifier) {
+              db.setSetting('plex_machine_id', serverInfo.machineIdentifier);
+              db.setSetting('plex_server_name', serverInfo.friendlyName);
+
+              logger.info('Auto-fetched server identity', {
+                machineId: serverInfo.machineIdentifier,
+                serverName: serverInfo.friendlyName
+              });
+            }
+          } catch (error) {
+            logger.warn('Failed to auto-fetch server identity', { error });
+            // Don't fail the settings save if identity fetch fails
+          }
+        }
       }
 
       logger.info('Settings updated by admin');

@@ -1,5 +1,9 @@
 # PlexDownloadarr
 
+<p align="center">
+  <img src="plexdownloadarr.png" alt="PlexDownloadarr Banner" width="600"/>
+</p>
+
 > Your Plex library, ready to download
 
 PlexDownloadarr is a modern web application that provides a user-friendly interface for downloading media from a Plex Media Server. It integrates with Plex's authentication system and respects user permissions, while presenting library content in a sleek, browsable interface similar to Overseerr or Wizarr.
@@ -24,7 +28,7 @@ PlexDownloadarr is a modern web application that provides a user-friendly interf
 - Node.js + Express + TypeScript
 - SQLite database (via better-sqlite3)
 - Plex API integration
-- JWT authentication
+- Session-based authentication
 
 ### Frontend
 - React 18 + TypeScript
@@ -48,32 +52,21 @@ git clone https://github.com/yourusername/PlexDownloadarr.git
 cd PlexDownloadarr
 ```
 
-2. Create environment file:
-```bash
-cp .env.example .env
-```
+2. (Optional) Edit `docker-compose.yml` to customize configuration:
+   - Change the port mapping if needed (default: 5069)
+   - Set log level (default: info)
+   - Optionally pre-configure Plex URL and token
 
-3. Edit `.env` and set your configuration (or configure via web UI later):
-```env
-# IMPORTANT: Change these secrets in production!
-JWT_SECRET=your-super-secret-jwt-key-change-this
-SESSION_SECRET=your-super-secret-session-key-change-this
-
-# Plex configuration (can be set via web UI)
-PLEX_URL=http://your-plex-server:32400
-PLEX_TOKEN=your-plex-token
-```
-
-4. Start the application:
+3. Start the application:
 ```bash
 docker-compose up -d
 ```
 
-5. Access the application at `http://localhost:5069`
+4. Access the application at `http://localhost:5069`
 
-6. Complete the initial setup wizard:
+5. Complete the initial setup wizard:
    - Create your admin account
-   - Configure Plex server connection
+   - Configure Plex server connection (URL, token, and machine ID)
    - Start browsing and downloading!
 
 ## Manual Installation (Development)
@@ -87,12 +80,13 @@ docker-compose up -d
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Edit .env with your configuration
 npm run dev
 ```
 
-The backend will start on `http://localhost:5069`
+The backend will start on `http://localhost:5069`. You can set environment variables if needed:
+```bash
+PORT=5069 LOG_LEVEL=debug npm run dev
+```
 
 ### Frontend Setup
 
@@ -106,19 +100,15 @@ The frontend will start on `http://localhost:3000` and proxy API requests to the
 
 ## Configuration
 
+All configuration is done via docker-compose environment variables or through the web UI.
+
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | Server port | `5069` |
-| `NODE_ENV` | Environment (development/production) | `development` |
-| `BASE_URL` | Base URL for the application | `http://localhost:5069` |
-| `PLEX_URL` | Plex Media Server URL | - |
-| `PLEX_TOKEN` | Plex authentication token | - |
-| `JWT_SECRET` | Secret for JWT tokens | (change in production!) |
-| `SESSION_SECRET` | Secret for session management | (change in production!) |
-| `DATABASE_PATH` | Path to SQLite database | `./data/plexdownloadarr.db` |
 | `LOG_LEVEL` | Logging level (info/debug/warn/error) | `info` |
+| `DATABASE_PATH` | Path to SQLite database | `./data/plexdownloadarr.db` |
 
 ### Docker Volumes
 
@@ -163,7 +153,9 @@ Use the admin credentials you created during setup to log in at `/login`.
 Access `/settings` to configure:
 - Plex server URL
 - Plex authentication token
+- Plex server machine ID (identifies your specific server for OAuth security)
 - Test Plex connection
+- Change admin password
 
 ## API Documentation
 
@@ -231,12 +223,12 @@ PlexDownloadarr/
 
 ## Security Considerations
 
-- Always change `JWT_SECRET` and `SESSION_SECRET` in production
-- Use HTTPS in production (configure reverse proxy)
-- Plex tokens are stored encrypted in the database
-- Rate limiting is enabled on API endpoints
-- Sessions expire after 24 hours
-- CSRF protection is implemented
+- **Server Lock**: Machine ID validation ensures users can only access YOUR Plex server, preventing abuse
+- **Use HTTPS in production**: Configure a reverse proxy (nginx, Traefik, Caddy)
+- **Plex OAuth**: Users log in with their own Plex accounts and permissions are enforced
+- **Rate limiting**: Enabled on all API endpoints to prevent abuse
+- **Sessions**: Database-backed sessions expire after 24 hours
+- **File logging**: All operations logged to `logs/` for audit trails
 
 ## Troubleshooting
 
