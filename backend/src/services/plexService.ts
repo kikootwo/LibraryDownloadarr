@@ -2,6 +2,7 @@ import PlexAPI from 'plex-api';
 import axios from 'axios';
 import { parseString } from 'xml2js';
 import { logger } from '../utils/logger';
+import { config } from '../config';
 
 // Promisified wrapper for xml2js parseString with options support
 const parseStringAsync = (xml: string, options: any): Promise<any> => {
@@ -559,6 +560,9 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
+        if (!this.plexUrl) {
+          throw new Error('Plex URL not configured');
+        }
         const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
@@ -605,6 +609,9 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
+        if (!this.plexUrl) {
+          throw new Error('Plex URL not configured');
+        }
         const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
@@ -644,6 +651,9 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
+        if (!this.plexUrl) {
+          throw new Error('Plex URL not configured');
+        }
         const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
@@ -683,6 +693,9 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
+        if (!this.plexUrl) {
+          throw new Error('Plex URL not configured');
+        }
         const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
@@ -722,6 +735,9 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
+        if (!this.plexUrl) {
+          throw new Error('Plex URL not configured');
+        }
         const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
@@ -761,6 +777,9 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
+        if (!this.plexUrl) {
+          throw new Error('Plex URL not configured');
+        }
         const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
@@ -814,6 +833,9 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
+        if (!this.plexUrl) {
+          throw new Error('Plex URL not configured');
+        }
         const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({

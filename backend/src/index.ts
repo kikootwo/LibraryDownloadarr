@@ -6,7 +6,6 @@ import path from 'path';
 import { config } from './config';
 import { DatabaseService } from './models/database';
 import { logger } from './utils/logger';
-import { plexService } from './services/plexService';
 import { createAuthRouter } from './routes/auth';
 import { createLibrariesRouter } from './routes/libraries';
 import { createMediaRouter } from './routes/media';
