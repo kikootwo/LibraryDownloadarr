@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { DatabaseService } from '../models/database';
 import { plexService } from '../services/plexService';
 import { logger } from '../utils/logger';
-import { config } from '../config';
 import { AuthRequest, createAuthMiddleware } from '../middleware/auth';
 
 export const createLibrariesRouter = (db: DatabaseService) => {
@@ -14,9 +13,8 @@ export const createLibrariesRouter = (db: DatabaseService) => {
   const getUserCredentials = (req: AuthRequest): { token: string | undefined; serverUrl: string; error?: string } => {
     const userToken = req.user?.plexToken;
     const isAdmin = req.user?.isAdmin;
-    // Use database values first, fall back to environment variables
-    const adminToken = db.getSetting('plex_token') || config.plex.token || undefined;
-    const adminUrl = db.getSetting('plex_url') || config.plex.url || '';
+    const adminToken = db.getSetting('plex_token') || undefined;
+    const adminUrl = db.getSetting('plex_url') || '';
 
     // All users must use admin's configured server URL
     if (!adminUrl) {

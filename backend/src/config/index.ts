@@ -5,8 +5,6 @@ export const config = {
     port: parseInt(process.env.PORT || '5069', 10),
   },
   plex: {
-    url: process.env.PLEX_URL || '',
-    token: process.env.PLEX_TOKEN || '',
     clientIdentifier: 'plexdownloadarr',
     product: 'PlexDownloadarr',
     version: '1.0.0',

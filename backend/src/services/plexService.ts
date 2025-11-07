@@ -2,7 +2,6 @@ import PlexAPI from 'plex-api';
 import axios from 'axios';
 import { parseString } from 'xml2js';
 import { logger } from '../utils/logger';
-import { config } from '../config';
 
 // Promisified wrapper for xml2js parseString with options support
 const parseStringAsync = (xml: string, options: any): Promise<any> => {
@@ -89,9 +88,7 @@ export class PlexService {
   private plexUrl: string | null = null;
 
   constructor() {
-    if (config.plex.url && config.plex.token) {
-      this.initializeClient(config.plex.url, config.plex.token);
-    }
+    // Plex configuration is now set via setServerConnection() when admin configures settings
   }
 
   private parseConnectionDetails(urlOrHostname: string): { hostname: string; port: number; https: boolean } {
@@ -453,7 +450,7 @@ export class PlexService {
   // Get server identity (machine identifier, friendly name, etc.)
   async getServerIdentity(token: string): Promise<{ machineIdentifier: string; friendlyName: string } | null> {
     try {
-      const url = this.plexUrl || config.plex.url;
+      const url = this.plexUrl;
 
       if (!url) {
         logger.error('No Plex URL configured for getServerIdentity');
@@ -485,16 +482,14 @@ export class PlexService {
   // Library operations
   async getLibraries(userToken?: string): Promise<PlexLibrary[]> {
     try {
-      // Get URL from: instance variable, environment, or database (via caller)
-      const url = this.plexUrl || config.plex.url;
-      const token = userToken || config.plex.token;
+      const url = this.plexUrl;
+      const token = userToken;
 
       logger.info('getLibraries called', {
         hasUrl: !!url,
         hasToken: !!token,
         hasUserToken: !!userToken,
         hasThisPlexUrl: !!this.plexUrl,
-        hasConfigUrl: !!config.plex.url,
         url: url || 'MISSING'
       });
 
@@ -549,7 +544,7 @@ export class PlexService {
       logger.error('Failed to get libraries', {
         error: error.message,
         stack: error.stack,
-        hasUrl: !!(this.plexUrl || config.plex.url),
+        hasUrl: !!(this.plexUrl),
         hasToken: !!userToken
       });
       throw error;
@@ -564,7 +559,7 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
           hostname: connectionDetails.hostname,
@@ -610,7 +605,7 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
           hostname: connectionDetails.hostname,
@@ -649,7 +644,7 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
           hostname: connectionDetails.hostname,
@@ -688,7 +683,7 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
           hostname: connectionDetails.hostname,
@@ -727,7 +722,7 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
           hostname: connectionDetails.hostname,
@@ -766,7 +761,7 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
           hostname: connectionDetails.hostname,
@@ -819,7 +814,7 @@ export class PlexService {
     try {
       let client: PlexAPI | null = null;
       if (userToken) {
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl || config.plex.url);
+        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
         // plex-api library supports port and https options, but TypeScript definitions are incomplete
         client = new PlexAPI({
           hostname: connectionDetails.hostname,
@@ -901,7 +896,7 @@ export class PlexService {
   }
 
   getDownloadUrl(partKey: string, token: string): string {
-    const baseUrl = this.plexUrl || config.plex.url;
+    const baseUrl = this.plexUrl;
     if (!baseUrl) {
       throw new Error('Plex server URL not configured');
     }
@@ -910,7 +905,7 @@ export class PlexService {
   }
 
   getThumbnailUrl(thumbPath: string, token: string): string {
-    const baseUrl = this.plexUrl || config.plex.url;
+    const baseUrl = this.plexUrl;
     if (!baseUrl || !thumbPath) {
       return '';
     }

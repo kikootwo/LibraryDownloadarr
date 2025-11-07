@@ -105,8 +105,6 @@ All configuration is done via docker-compose environment variables or through th
 | `PORT` | Server port | `5069` |
 | `LOG_LEVEL` | Logging level (info/debug/warn/error) | `info` |
 | `DATABASE_PATH` | Path to SQLite database | `./data/plexdownloadarr.db` |
-| `PLEX_URL` | (Optional) Plex Media Server URL | Can be set via web UI |
-| `PLEX_TOKEN` | (Optional) Plex authentication token | Can be set via web UI |
 
 ### Docker Volumes
 

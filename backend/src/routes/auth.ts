@@ -3,7 +3,6 @@ import bcrypt from 'bcrypt';
 import { DatabaseService } from '../models/database';
 import { plexService } from '../services/plexService';
 import { logger } from '../utils/logger';
-import { config } from '../config';
 import { AuthRequest, createAuthMiddleware } from '../middleware/auth';
 
 export const createAuthRouter = (db: DatabaseService) => {
@@ -138,8 +137,7 @@ export const createAuthRouter = (db: DatabaseService) => {
       logger.info('Plex PIN authorized', { username: authResponse.user.username });
 
       // SECURITY: Validate user has access to admin's configured Plex server
-      // Use database values first, fall back to environment variables
-      const adminServerUrl = db.getSetting('plex_url') || config.plex.url || '';
+      const adminServerUrl = db.getSetting('plex_url') || '';
       const adminMachineId = db.getSetting('plex_machine_id') || '';
 
       if (!adminServerUrl) {
