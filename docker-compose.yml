@@ -11,6 +11,8 @@ services:
       - LOG_LEVEL=info
       # Database path (persisted to volume)
       - DATABASE_PATH=/app/data/plexdownloadarr.db
+      # Timezone configuration (set to your local timezone)
+      - TZ=America/New_York
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs

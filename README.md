@@ -44,17 +44,57 @@ PlexDownloadarr is a modern web application that provides a user-friendly interf
 - Plex Media Server running and accessible
 - Plex authentication token (can be configured during setup)
 
-### Installation
+### Option 1: Using Prebuilt Image (Easiest)
+
+1. Create a `docker-compose.yml` file:
+```yaml
+services:
+  plexdownloadarr:
+    image: ghcr.io/kikootwo/plexdownloadarr:latest
+    container_name: plexdownloadarr
+    restart: unless-stopped
+    ports:
+      - "5069:5069"
+    environment:
+      - PORT=5069
+      - LOG_LEVEL=info
+      - DATABASE_PATH=/app/data/plexdownloadarr.db
+      - TZ=America/New_York  # Set to your timezone
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - plexdownloadarr
+
+networks:
+  plexdownloadarr:
+    driver: bridge
+```
+
+2. Start the application:
+```bash
+docker-compose up -d
+```
+
+3. Access the application at `http://localhost:5069`
+
+4. Complete the initial setup wizard:
+   - Create your admin account
+   - Configure Plex server connection (URL, token, and machine ID)
+   - Start browsing and downloading!
+
+### Option 2: Build from Source
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/PlexDownloadarr.git
+git clone https://github.com/kikootwo/PlexDownloadarr.git
 cd PlexDownloadarr
 ```
 
 2. (Optional) Edit `docker-compose.yml` to customize configuration:
    - Change the port mapping if needed (default: 5069)
    - Set log level (default: info)
+   - Set timezone (default: America/New_York)
    - Optionally pre-configure Plex URL and token
 
 3. Start the application:
@@ -109,6 +149,7 @@ All configuration is done via docker-compose environment variables or through th
 | `PORT` | Server port | `5069` |
 | `LOG_LEVEL` | Logging level (info/debug/warn/error) | `info` |
 | `DATABASE_PATH` | Path to SQLite database | `./data/plexdownloadarr.db` |
+| `TZ` | Timezone for logs and timestamps (e.g., `America/New_York`, `Europe/London`, `Asia/Tokyo`) | `America/New_York` |
 
 ### Docker Volumes
 
