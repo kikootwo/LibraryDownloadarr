@@ -3,12 +3,10 @@ name: Build and Publish Docker Image
 on:
   # Allow manual trigger
   workflow_dispatch:
-  # Trigger on version tags
+  # Trigger on version tags and main branch pushes
   push:
     tags:
       - 'v*.*.*'
-  # Trigger on main branch for latest
-  push:
     branches:
       - main
 
