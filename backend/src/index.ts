@@ -6,6 +6,7 @@ import path from 'path';
 import { config } from './config';
 import { DatabaseService } from './models/database';
 import { logger } from './utils/logger';
+import { plexService } from './services/plexService';
 import { createAuthRouter } from './routes/auth';
 import { createLibrariesRouter } from './routes/libraries';
 import { createMediaRouter } from './routes/media';
@@ -14,6 +15,36 @@ import { createLogsRouter } from './routes/logs';
 
 // Initialize database
 const db = new DatabaseService(config.database.path);
+
+// Auto-fetch machine ID on startup if URL and token are configured
+const initializeMachineId = async () => {
+  try {
+    const plexUrl = config.plex.url;
+    const plexToken = config.plex.token;
+    const existingMachineId = db.getSetting('plex_machine_id');
+
+    // Only auto-fetch if URL and token are pre-configured but machine ID is missing
+    if (plexUrl && plexToken && !existingMachineId) {
+      logger.info('Plex URL and token configured, fetching machine ID automatically...');
+
+      plexService.setServerConnection(plexUrl, plexToken);
+      const serverInfo = await plexService.getServerIdentity(plexToken);
+
+      if (serverInfo?.machineIdentifier) {
+        db.setSetting('plex_machine_id', serverInfo.machineIdentifier);
+        logger.info(`Machine ID auto-configured: ${serverInfo.machineIdentifier} (${serverInfo.friendlyName})`);
+      } else {
+        logger.warn('Failed to auto-fetch machine ID - server identity not found');
+      }
+    }
+  } catch (error) {
+    logger.error('Failed to auto-fetch machine ID on startup', { error });
+    // Don't fail startup, just log the error
+  }
+};
+
+// Initialize machine ID (async, don't block startup)
+initializeMachineId();
 
 // Cleanup expired sessions every hour
 setInterval(() => {

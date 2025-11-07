@@ -58,6 +58,14 @@ export const Sidebar: React.FC = () => {
             >
               📋 Logs
             </button>
+            <button
+              onClick={() => navigate('/settings')}
+              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                isActive('/settings') ? 'bg-dark-200 text-primary-400' : 'hover:bg-dark-200'
+              }`}
+            >
+              ⚙️ Settings
+            </button>
           </>
         )}
 
