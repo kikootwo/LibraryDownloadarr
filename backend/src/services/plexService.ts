@@ -466,10 +466,20 @@ export class PlexService {
       });
 
       const data = response.data?.MediaContainer;
+
+      // Log the full response to debug field names
+      logger.info('Plex identity response', {
+        data,
+        keys: data ? Object.keys(data) : []
+      });
+
       if (data?.machineIdentifier) {
+        // Try multiple possible field names for the server name
+        const serverName = data.friendlyName || data.title || data.name || 'Unknown Server';
+
         return {
           machineIdentifier: data.machineIdentifier,
-          friendlyName: data.friendlyName || 'Unknown Server'
+          friendlyName: serverName
         };
       }
 
