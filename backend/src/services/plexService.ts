@@ -1,4 +1,3 @@
-import PlexAPI from 'plex-api';
 import axios from 'axios';
 import { parseString } from 'xml2js';
 import { logger } from '../utils/logger';
@@ -36,15 +35,13 @@ export interface PlexMedia {
   originallyAvailableAt?: string;
   studio?: string;
   contentRating?: string;
-  librarySectionID?: string; // Library section this media belongs to
-  librarySectionTitle?: string; // Library name
-  // Episode/Season specific fields
-  grandparentTitle?: string; // Show name for episodes
-  parentTitle?: string; // Season name for episodes
-  index?: number; // Episode number
-  parentIndex?: number; // Season number
-  // Album/Track specific fields
-  parentRatingKey?: string; // Album rating key for tracks
+  librarySectionID?: string;
+  librarySectionTitle?: string;
+  grandparentTitle?: string;
+  parentTitle?: string;
+  index?: number;
+  parentIndex?: number;
+  parentRatingKey?: string;
   Media?: Array<{
     id: number;
     duration: number;
@@ -85,7 +82,6 @@ export interface PlexAuthResponse {
 }
 
 export class PlexService {
-  private client: PlexAPI | null = null;
   private plexUrl: string | null = null;
 
   constructor() {
@@ -94,7 +90,6 @@ export class PlexService {
 
   private parseConnectionDetails(urlOrHostname: string): { hostname: string; port: number; https: boolean } {
     try {
-      // If it starts with http:// or https://, parse it
       if (urlOrHostname.startsWith('http://') || urlOrHostname.startsWith('https://')) {
         const url = new URL(urlOrHostname);
         const port = url.port ? parseInt(url.port) : (url.protocol === 'https:' ? 443 : 32400);
@@ -114,7 +109,6 @@ export class PlexService {
         };
       }
 
-      // Otherwise assume it's in host:port format or just hostname
       if (urlOrHostname.includes(':')) {
         const [hostname, portStr] = urlOrHostname.split(':');
         const port = parseInt(portStr) || 32400;
@@ -122,7 +116,6 @@ export class PlexService {
         return { hostname, port, https: false };
       }
 
-      // Just hostname
       logger.info('Using hostname with default port', { hostname: urlOrHostname, port: 32400 });
       return { hostname: urlOrHostname, port: 32400, https: false };
     } catch (error) {
@@ -131,25 +124,12 @@ export class PlexService {
     }
   }
 
-  private initializeClient(urlOrHostname: string, token: string): void {
+  private initializeClient(urlOrHostname: string, _token: string): void {
     const connectionDetails = this.parseConnectionDetails(urlOrHostname);
     const protocol = connectionDetails.https ? 'https' : 'http';
     this.plexUrl = `${protocol}://${connectionDetails.hostname}:${connectionDetails.port}`;
 
-    // plex-api library supports port and https options, but TypeScript definitions are incomplete
-    this.client = new PlexAPI({
-      hostname: connectionDetails.hostname,
-      port: connectionDetails.port,
-      https: connectionDetails.https,
-      token,
-      options: {
-        identifier: config.plex.clientIdentifier,
-        product: config.plex.product,
-        version: config.plex.version,
-        deviceName: config.plex.device,
-      },
-    } as any);
-    logger.info('Plex client initialized', {
+    logger.info('Plex connection initialized', {
       hostname: connectionDetails.hostname,
       port: connectionDetails.port,
       https: connectionDetails.https
@@ -161,12 +141,12 @@ export class PlexService {
   }
 
   async testConnection(): Promise<boolean> {
-    if (!this.client) {
+    if (!this.plexUrl) {
       return false;
     }
 
     try {
-      await this.client.query('/');
+      await axios.get(`${this.plexUrl}/`);
       return true;
     } catch (error) {
       logger.error('Failed to connect to Plex server', { error });
@@ -177,21 +157,14 @@ export class PlexService {
   async testConnectionWithCredentials(urlOrHostname: string, token: string): Promise<boolean> {
     try {
       const connectionDetails = this.parseConnectionDetails(urlOrHostname);
-      // plex-api library supports port and https options, but TypeScript definitions are incomplete
-      const testClient = new PlexAPI({
-        hostname: connectionDetails.hostname,
-        port: connectionDetails.port,
-        https: connectionDetails.https,
-        token,
-        options: {
-          identifier: config.plex.clientIdentifier,
-          product: config.plex.product,
-          version: config.plex.version,
-          deviceName: config.plex.device,
-        },
-      } as any);
+      const protocol = connectionDetails.https ? 'https' : 'http';
+      const url = `${protocol}://${connectionDetails.hostname}:${connectionDetails.port}`;
 
-      await testClient.query('/');
+      await axios.get(`${url}/`, {
+        headers: {
+          'X-Plex-Token': token,
+        },
+      });
       return true;
     } catch (error) {
       logger.error('Failed to test connection with provided credentials', { error });
@@ -199,7 +172,7 @@ export class PlexService {
     }
   }
 
-  // OAuth PIN Flow
+  // OAuth PIN Flow - using direct axios calls as these are Plex.tv APIs, not server APIs
   async generatePin(): Promise<PlexPinResponse> {
     try {
       const response = await axios.post(
@@ -239,19 +212,16 @@ export class PlexService {
       });
 
       if (response.data.authToken) {
-        // Try to get more detailed user info from the user endpoint
         let username = response.data.username || response.data.title || response.data.friendlyName;
 
         try {
           const userInfo = await this.getUserInfo(response.data.authToken);
-          // Plex user API can return friendly_name, username, or title
           username = userInfo.friendlyName || userInfo.friendly_name || userInfo.username || userInfo.title || username;
           logger.info('Fetched detailed user info', { username, userInfo });
         } catch (error) {
           logger.warn('Could not fetch detailed user info, using PIN data', { error });
         }
 
-        // Fallback to user ID if no friendly name available
         if (!username) {
           username = `plexuser_${response.data.id}`;
         }
@@ -293,7 +263,6 @@ export class PlexService {
 
   async getUserServers(userToken: string): Promise<any[]> {
     try {
-      // Plex /api/resources endpoint returns XML only (no JSON option)
       const response = await axios.get('https://plex.tv/api/resources', {
         headers: {
           'X-Plex-Token': userToken,
@@ -304,7 +273,6 @@ export class PlexService {
         },
       });
 
-      // Parse XML to JSON
       const parsed = await parseStringAsync(response.data, {
         explicitArray: false,
         mergeAttrs: true,
@@ -316,7 +284,6 @@ export class PlexService {
         deviceType: typeof parsed?.MediaContainer?.Device
       });
 
-      // Extract devices from parsed XML
       if (parsed?.MediaContainer?.Device) {
         const devices = Array.isArray(parsed.MediaContainer.Device)
           ? parsed.MediaContainer.Device
@@ -361,8 +328,6 @@ export class PlexService {
         } : 'none'
       });
 
-      // Filter for servers that the user has access to
-      // They either own it (owned=1) OR have an accessToken (shared with them)
       const accessibleServers = servers.filter(s =>
         s.provides === 'server' &&
         (s.owned === '1' || s.owned === 1 || s.owned === true || s.accessToken)
@@ -374,13 +339,11 @@ export class PlexService {
         serverNames: accessibleServers.slice(0, 5).map((s: any) => s.name)
       });
 
-      // If we have a target machine ID (from admin settings), try to match it
       let targetServer = null;
       if (targetMachineId) {
         targetServer = accessibleServers.find(s => s.clientIdentifier === targetMachineId);
       }
 
-      // Otherwise, just use the first accessible server
       if (!targetServer && accessibleServers.length > 0) {
         targetServer = accessibleServers[0];
       }
@@ -405,8 +368,6 @@ export class PlexService {
         connectionsCount: targetServer.connections?.length || 0
       });
 
-      // Find best connection URL
-      // Prefer: local > relay
       const connections = targetServer.connections || targetServer.Connection || [];
       const connectionsArray = Array.isArray(connections) ? connections : [connections];
 
@@ -419,14 +380,12 @@ export class PlexService {
         } : 'none'
       });
 
-      // First try local connections
       const localConn = connectionsArray.find((c: any) => c.local === 1 || c.local === '1' || c.local === true);
       if (localConn?.uri) {
         logger.info('Using local connection', { uri: localConn.uri, accessToken: accessToken ? 'present' : 'none' });
         return { serverUrl: localConn.uri, accessToken };
       }
 
-      // Fall back to any available connection (including relay)
       const anyConn = connectionsArray.find((c: any) => c.uri);
       if (anyConn?.uri) {
         logger.info('Using relay/remote connection', { uri: anyConn.uri, accessToken: accessToken ? 'present' : 'none' });
@@ -448,7 +407,6 @@ export class PlexService {
     }
   }
 
-  // Get server identity (machine identifier, friendly name, etc.)
   async getServerIdentity(token: string): Promise<{ machineIdentifier: string; friendlyName: string } | null> {
     try {
       const url = this.plexUrl;
@@ -458,7 +416,6 @@ export class PlexService {
         return null;
       }
 
-      // Get machine identifier from /identity endpoint
       const identityResponse = await axios.get(`${url}/identity`, {
         headers: {
           'X-Plex-Token': token,
@@ -474,7 +431,6 @@ export class PlexService {
         return null;
       }
 
-      // Get server name from root endpoint (/ has friendlyName)
       const rootResponse = await axios.get(`${url}/`, {
         headers: {
           'X-Plex-Token': token,
@@ -490,7 +446,6 @@ export class PlexService {
         keys: rootData ? Object.keys(rootData).slice(0, 10) : []
       });
 
-      // The root endpoint should have friendlyName
       const serverName = rootData?.friendlyName || rootData?.title || 'Plex Server';
 
       return {
@@ -503,7 +458,7 @@ export class PlexService {
     }
   }
 
-  // Library operations
+  // Library operations using direct HTTP calls
   async getLibraries(userToken?: string): Promise<PlexLibrary[]> {
     try {
       const url = this.plexUrl;
@@ -512,8 +467,6 @@ export class PlexService {
       logger.info('getLibraries called', {
         hasUrl: !!url,
         hasToken: !!token,
-        hasUserToken: !!userToken,
-        hasThisPlexUrl: !!this.plexUrl,
         url: url || 'MISSING'
       });
 
@@ -521,45 +474,18 @@ export class PlexService {
         throw new Error(`Plex URL and token are required. Please configure in Settings. (url: ${!!url}, token: ${!!token})`);
       }
 
-      // For shared users (userToken provided), use axios directly
-      // The plex-api library has issues with shared user tokens
-      if (userToken) {
-        const response = await axios.get(`${url}/library/sections`, {
-          headers: {
-            'X-Plex-Token': token,
-            'Accept': 'application/json',
-          },
-        });
+      const response = await axios.get(`${url}/library/sections`, {
+        headers: {
+          'X-Plex-Token': token,
+          'Accept': 'application/json',
+        },
+      });
 
-        if (!response.data?.MediaContainer?.Directory) {
-          return [];
-        }
-
-        return response.data.MediaContainer.Directory.map((dir: any) => ({
-          key: dir.key,
-          title: dir.title,
-          type: dir.type,
-        }));
+      if (!response.data?.MediaContainer?.Directory) {
+        return [];
       }
 
-      // For admin users (no userToken), use plex-api library as before
-      const connectionDetails = this.parseConnectionDetails(url);
-      const client = new PlexAPI({
-        hostname: connectionDetails.hostname,
-        port: connectionDetails.port,
-        https: connectionDetails.https,
-        token: token,
-        options: {
-          identifier: config.plex.clientIdentifier,
-          product: config.plex.product,
-          version: config.plex.version,
-          deviceName: config.plex.device,
-        },
-      } as any);
-
-      const result = await client.query('/library/sections');
-
-      return result.MediaContainer.Directory.map((dir: any) => ({
+      return response.data.MediaContainer.Directory.map((dir: any) => ({
         key: dir.key,
         title: dir.title,
         type: dir.type,
@@ -576,48 +502,24 @@ export class PlexService {
   }
 
   async getLibraryContent(libraryKey: string, userToken?: string, viewType?: string): Promise<PlexMedia[]> {
-    if (!this.client && !this.plexUrl) {
-      throw new Error('Plex client not initialized');
+    if (!this.plexUrl) {
+      throw new Error('Plex server not configured');
     }
 
     try {
-      let client: PlexAPI | null = null;
-      if (userToken) {
-        if (!this.plexUrl) {
-          throw new Error('Plex URL not configured');
-        }
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
-        // plex-api library supports port and https options, but TypeScript definitions are incomplete
-        client = new PlexAPI({
-          hostname: connectionDetails.hostname,
-          port: connectionDetails.port,
-          https: connectionDetails.https,
-          token: userToken,
-          options: {
-            identifier: config.plex.clientIdentifier,
-            product: config.plex.product,
-            version: config.plex.version,
-            deviceName: config.plex.device,
-          },
-        } as any);
-      } else {
-        client = this.client;
-      }
-
-      if (!client) {
-        throw new Error('Plex client not available');
-      }
-
-      // For music/audiobook libraries (type: artist), fetch albums instead of artists
-      // This provides a better browsing experience
       let endpoint = `/library/sections/${libraryKey}/all`;
       if (viewType === 'albums') {
         endpoint = `/library/sections/${libraryKey}/albums`;
       }
 
-      const result = await client.query(endpoint);
+      const response = await axios.get(`${this.plexUrl}${endpoint}`, {
+        headers: {
+          'X-Plex-Token': userToken || '',
+          'Accept': 'application/json',
+        },
+      });
 
-      return result.MediaContainer.Metadata || [];
+      return response.data?.MediaContainer?.Metadata || [];
     } catch (error) {
       logger.error('Failed to get library content', { error });
       throw new Error('Failed to get library content');
@@ -625,41 +527,19 @@ export class PlexService {
   }
 
   async getMediaMetadata(ratingKey: string, userToken?: string): Promise<PlexMedia> {
-    if (!this.client && !this.plexUrl) {
-      throw new Error('Plex client not initialized');
+    if (!this.plexUrl) {
+      throw new Error('Plex server not configured');
     }
 
     try {
-      let client: PlexAPI | null = null;
-      if (userToken) {
-        if (!this.plexUrl) {
-          throw new Error('Plex URL not configured');
-        }
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
-        // plex-api library supports port and https options, but TypeScript definitions are incomplete
-        client = new PlexAPI({
-          hostname: connectionDetails.hostname,
-          port: connectionDetails.port,
-          https: connectionDetails.https,
-          token: userToken,
-          options: {
-            identifier: config.plex.clientIdentifier,
-            product: config.plex.product,
-            version: config.plex.version,
-            deviceName: config.plex.device,
-          },
-        } as any);
-      } else {
-        client = this.client;
-      }
+      const response = await axios.get(`${this.plexUrl}/library/metadata/${ratingKey}`, {
+        headers: {
+          'X-Plex-Token': userToken || '',
+          'Accept': 'application/json',
+        },
+      });
 
-      if (!client) {
-        throw new Error('Plex client not available');
-      }
-
-      const result = await client.query(`/library/metadata/${ratingKey}`);
-
-      return result.MediaContainer.Metadata[0];
+      return response.data?.MediaContainer?.Metadata?.[0];
     } catch (error) {
       logger.error('Failed to get media metadata', { error });
       throw new Error('Failed to get media metadata');
@@ -667,41 +547,19 @@ export class PlexService {
   }
 
   async getSeasons(showRatingKey: string, userToken?: string): Promise<PlexMedia[]> {
-    if (!this.client && !this.plexUrl) {
-      throw new Error('Plex client not initialized');
+    if (!this.plexUrl) {
+      throw new Error('Plex server not configured');
     }
 
     try {
-      let client: PlexAPI | null = null;
-      if (userToken) {
-        if (!this.plexUrl) {
-          throw new Error('Plex URL not configured');
-        }
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
-        // plex-api library supports port and https options, but TypeScript definitions are incomplete
-        client = new PlexAPI({
-          hostname: connectionDetails.hostname,
-          port: connectionDetails.port,
-          https: connectionDetails.https,
-          token: userToken,
-          options: {
-            identifier: config.plex.clientIdentifier,
-            product: config.plex.product,
-            version: config.plex.version,
-            deviceName: config.plex.device,
-          },
-        } as any);
-      } else {
-        client = this.client;
-      }
+      const response = await axios.get(`${this.plexUrl}/library/metadata/${showRatingKey}/children`, {
+        headers: {
+          'X-Plex-Token': userToken || '',
+          'Accept': 'application/json',
+        },
+      });
 
-      if (!client) {
-        throw new Error('Plex client not available');
-      }
-
-      const result = await client.query(`/library/metadata/${showRatingKey}/children`);
-
-      return result.MediaContainer.Metadata || [];
+      return response.data?.MediaContainer?.Metadata || [];
     } catch (error) {
       logger.error('Failed to get seasons', { error });
       throw new Error('Failed to get seasons');
@@ -709,41 +567,19 @@ export class PlexService {
   }
 
   async getEpisodes(seasonRatingKey: string, userToken?: string): Promise<PlexMedia[]> {
-    if (!this.client && !this.plexUrl) {
-      throw new Error('Plex client not initialized');
+    if (!this.plexUrl) {
+      throw new Error('Plex server not configured');
     }
 
     try {
-      let client: PlexAPI | null = null;
-      if (userToken) {
-        if (!this.plexUrl) {
-          throw new Error('Plex URL not configured');
-        }
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
-        // plex-api library supports port and https options, but TypeScript definitions are incomplete
-        client = new PlexAPI({
-          hostname: connectionDetails.hostname,
-          port: connectionDetails.port,
-          https: connectionDetails.https,
-          token: userToken,
-          options: {
-            identifier: config.plex.clientIdentifier,
-            product: config.plex.product,
-            version: config.plex.version,
-            deviceName: config.plex.device,
-          },
-        } as any);
-      } else {
-        client = this.client;
-      }
+      const response = await axios.get(`${this.plexUrl}/library/metadata/${seasonRatingKey}/children`, {
+        headers: {
+          'X-Plex-Token': userToken || '',
+          'Accept': 'application/json',
+        },
+      });
 
-      if (!client) {
-        throw new Error('Plex client not available');
-      }
-
-      const result = await client.query(`/library/metadata/${seasonRatingKey}/children`);
-
-      return result.MediaContainer.Metadata || [];
+      return response.data?.MediaContainer?.Metadata || [];
     } catch (error) {
       logger.error('Failed to get episodes', { error });
       throw new Error('Failed to get episodes');
@@ -751,41 +587,19 @@ export class PlexService {
   }
 
   async getTracks(albumRatingKey: string, userToken?: string): Promise<PlexMedia[]> {
-    if (!this.client && !this.plexUrl) {
-      throw new Error('Plex client not initialized');
+    if (!this.plexUrl) {
+      throw new Error('Plex server not configured');
     }
 
     try {
-      let client: PlexAPI | null = null;
-      if (userToken) {
-        if (!this.plexUrl) {
-          throw new Error('Plex URL not configured');
-        }
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
-        // plex-api library supports port and https options, but TypeScript definitions are incomplete
-        client = new PlexAPI({
-          hostname: connectionDetails.hostname,
-          port: connectionDetails.port,
-          https: connectionDetails.https,
-          token: userToken,
-          options: {
-            identifier: config.plex.clientIdentifier,
-            product: config.plex.product,
-            version: config.plex.version,
-            deviceName: config.plex.device,
-          },
-        } as any);
-      } else {
-        client = this.client;
-      }
+      const response = await axios.get(`${this.plexUrl}/library/metadata/${albumRatingKey}/children`, {
+        headers: {
+          'X-Plex-Token': userToken || '',
+          'Accept': 'application/json',
+        },
+      });
 
-      if (!client) {
-        throw new Error('Plex client not available');
-      }
-
-      const result = await client.query(`/library/metadata/${albumRatingKey}/children`);
-
-      return result.MediaContainer.Metadata || [];
+      return response.data?.MediaContainer?.Metadata || [];
     } catch (error) {
       logger.error('Failed to get tracks', { error });
       throw new Error('Failed to get tracks');
@@ -793,55 +607,32 @@ export class PlexService {
   }
 
   async search(query: string, userToken?: string): Promise<PlexMedia[]> {
-    if (!this.client && !this.plexUrl) {
-      throw new Error('Plex client not initialized');
+    if (!this.plexUrl) {
+      throw new Error('Plex server not configured');
     }
 
     try {
-      let client: PlexAPI | null = null;
-      if (userToken) {
-        if (!this.plexUrl) {
-          throw new Error('Plex URL not configured');
-        }
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
-        // plex-api library supports port and https options, but TypeScript definitions are incomplete
-        client = new PlexAPI({
-          hostname: connectionDetails.hostname,
-          port: connectionDetails.port,
-          https: connectionDetails.https,
-          token: userToken,
-          options: {
-            identifier: config.plex.clientIdentifier,
-            product: config.plex.product,
-            version: config.plex.version,
-            deviceName: config.plex.device,
-          },
-        } as any);
-      } else {
-        client = this.client;
-      }
-
-      if (!client) {
-        throw new Error('Plex client not available');
-      }
-
       logger.info('Executing Plex search query', { query, endpoint: '/search' });
 
-      // The plex-api library query method expects parameters as query string params
-      const result = await client.query('/search?query=' + encodeURIComponent(query));
-
-      logger.info('Search query completed', {
-        hasResults: !!result?.MediaContainer?.Metadata,
-        resultCount: result?.MediaContainer?.Metadata?.length || 0
+      const response = await axios.get(`${this.plexUrl}/search`, {
+        params: { query },
+        headers: {
+          'X-Plex-Token': userToken || '',
+          'Accept': 'application/json',
+        },
       });
 
-      return result.MediaContainer.Metadata || [];
+      logger.info('Search query completed', {
+        hasResults: !!response.data?.MediaContainer?.Metadata,
+        resultCount: response.data?.MediaContainer?.Metadata?.length || 0
+      });
+
+      return response.data?.MediaContainer?.Metadata || [];
     } catch (error: any) {
       logger.error('Failed to search', {
         error: error.message,
         stack: error.stack,
         query,
-        hasClient: !!this.client,
         hasPlexUrl: !!this.plexUrl
       });
       throw error;
@@ -849,57 +640,34 @@ export class PlexService {
   }
 
   async getRecentlyAdded(userToken?: string, limit: number = 20): Promise<PlexMedia[]> {
-    if (!this.client && !this.plexUrl) {
-      throw new Error('Plex client not initialized');
+    if (!this.plexUrl) {
+      throw new Error('Plex server not configured');
     }
 
     try {
-      let client: PlexAPI | null = null;
-      if (userToken) {
-        if (!this.plexUrl) {
-          throw new Error('Plex URL not configured');
-        }
-        const connectionDetails = this.parseConnectionDetails(this.plexUrl);
-        // plex-api library supports port and https options, but TypeScript definitions are incomplete
-        client = new PlexAPI({
-          hostname: connectionDetails.hostname,
-          port: connectionDetails.port,
-          https: connectionDetails.https,
-          token: userToken,
-          options: {
-            identifier: config.plex.clientIdentifier,
-            product: config.plex.product,
-            version: config.plex.version,
-            deviceName: config.plex.device,
-          },
-        } as any);
-      } else {
-        client = this.client;
-      }
-
-      if (!client) {
-        throw new Error('Plex client not available');
-      }
-
-      // Get all libraries first
       const libraries = await this.getLibraries(userToken);
       logger.info('Fetching recently added from all libraries', {
         libraryCount: libraries.length,
         libraries: libraries.map(l => ({ key: l.key, title: l.title, type: l.type }))
       });
 
-      // Fetch recently added from each library
       const allMedia: PlexMedia[] = [];
-      const itemsPerLibrary = Math.ceil(limit / libraries.length) + 5; // Get a few extra from each
+      const itemsPerLibrary = Math.ceil(limit / libraries.length) + 5;
 
       for (const library of libraries) {
         try {
-          const result = await client.query(`/library/sections/${library.key}/recentlyAdded`, {
-            'X-Plex-Container-Start': 0,
-            'X-Plex-Container-Size': itemsPerLibrary,
+          const response = await axios.get(`${this.plexUrl}/library/sections/${library.key}/recentlyAdded`, {
+            params: {
+              'X-Plex-Container-Start': 0,
+              'X-Plex-Container-Size': itemsPerLibrary,
+            },
+            headers: {
+              'X-Plex-Token': userToken || '',
+              'Accept': 'application/json',
+            },
           });
 
-          const metadata = result.MediaContainer.Metadata || [];
+          const metadata = response.data?.MediaContainer?.Metadata || [];
           logger.info(`Library ${library.title} recently added`, {
             libraryKey: library.key,
             libraryType: library.type,
@@ -913,13 +681,11 @@ export class PlexService {
             libraryKey: library.key,
             error: error.message
           });
-          // Continue with other libraries even if one fails
         }
       }
 
-      // Sort by addedAt timestamp (most recent first) and limit
       const sorted = allMedia
-        .filter(m => m.addedAt) // Only include items with addedAt timestamp
+        .filter(m => m.addedAt)
         .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
         .slice(0, limit);
 
