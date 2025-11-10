@@ -86,7 +86,16 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
       });
 
       if (!response.ok) {
-        throw new Error('Download failed');
+        // Try to extract error message from JSON response
+        let errorMessage = 'Download failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const contentLength = response.headers.get('content-length');
