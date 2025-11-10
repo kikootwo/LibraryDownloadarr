@@ -95,7 +95,7 @@ export class PlexService {
         const port = url.port ? parseInt(url.port) : (url.protocol === 'https:' ? 443 : 32400);
         const https = url.protocol === 'https:';
 
-        logger.info('Parsed connection details from URL', {
+        logger.debug('Parsed connection details from URL', {
           input: urlOrHostname,
           hostname: url.hostname,
           port: port,
@@ -112,11 +112,11 @@ export class PlexService {
       if (urlOrHostname.includes(':')) {
         const [hostname, portStr] = urlOrHostname.split(':');
         const port = parseInt(portStr) || 32400;
-        logger.info('Parsed connection details from host:port', { hostname, port });
+        logger.debug('Parsed connection details from host:port', { hostname, port });
         return { hostname, port, https: false };
       }
 
-      logger.info('Using hostname with default port', { hostname: urlOrHostname, port: 32400 });
+      logger.debug('Using hostname with default port', { hostname: urlOrHostname, port: 32400 });
       return { hostname: urlOrHostname, port: 32400, https: false };
     } catch (error) {
       logger.warn('Failed to parse Plex URL, using defaults', { urlOrHostname, error });
@@ -129,7 +129,7 @@ export class PlexService {
     const protocol = connectionDetails.https ? 'https' : 'http';
     this.plexUrl = `${protocol}://${connectionDetails.hostname}:${connectionDetails.port}`;
 
-    logger.info('Plex connection initialized', {
+    logger.debug('Plex connection initialized', {
       hostname: connectionDetails.hostname,
       port: connectionDetails.port,
       https: connectionDetails.https
@@ -206,7 +206,7 @@ export class PlexService {
         },
       });
 
-      logger.info('Plex PIN response', {
+      logger.debug('Plex PIN response', {
         hasAuthToken: !!response.data.authToken,
         userData: response.data,
       });
@@ -217,7 +217,7 @@ export class PlexService {
         try {
           const userInfo = await this.getUserInfo(response.data.authToken);
           username = userInfo.friendlyName || userInfo.friendly_name || userInfo.username || userInfo.title || username;
-          logger.info('Fetched detailed user info', { username, userInfo });
+          logger.debug('Fetched detailed user info', { username, userInfo });
         } catch (error) {
           logger.warn('Could not fetch detailed user info, using PIN data', { error });
         }
@@ -278,7 +278,7 @@ export class PlexService {
         mergeAttrs: true,
       });
 
-      logger.info('getUserServers parsed XML', {
+      logger.debug('getUserServers parsed XML', {
         hasMediaContainer: !!parsed?.MediaContainer,
         hasDevice: !!parsed?.MediaContainer?.Device,
         deviceType: typeof parsed?.MediaContainer?.Device
@@ -289,7 +289,7 @@ export class PlexService {
           ? parsed.MediaContainer.Device
           : [parsed.MediaContainer.Device];
 
-        logger.info('Extracted devices from XML', {
+        logger.debug('Extracted devices from XML', {
           deviceCount: devices.length,
           firstDevice: devices[0] ? {
             name: devices[0].name,
@@ -316,7 +316,7 @@ export class PlexService {
 
   findBestServerConnection(servers: any[], targetMachineId?: string): { serverUrl: string | null; accessToken: string | null } {
     try {
-      logger.info('Finding best server connection', {
+      logger.debug('Finding best server connection', {
         serversCount: servers.length,
         targetMachineId,
         firstServer: servers[0] ? {
@@ -333,7 +333,7 @@ export class PlexService {
         (s.owned === '1' || s.owned === 1 || s.owned === true || s.accessToken)
       );
 
-      logger.info('Filtered accessible servers', {
+      logger.debug('Filtered accessible servers', {
         totalServers: servers.length,
         accessibleServers: accessibleServers.length,
         serverNames: accessibleServers.slice(0, 5).map((s: any) => s.name)
@@ -359,7 +359,7 @@ export class PlexService {
       const isSharedServer = targetServer.owned === '0' || targetServer.owned === 0 || targetServer.owned === false;
       const accessToken = isSharedServer ? targetServer.accessToken : null;
 
-      logger.info('Found target server', {
+      logger.debug('Found target server', {
         name: targetServer.name,
         machineId: targetServer.clientIdentifier,
         isShared: isSharedServer,
@@ -371,7 +371,7 @@ export class PlexService {
       const connections = targetServer.connections || targetServer.Connection || [];
       const connectionsArray = Array.isArray(connections) ? connections : [connections];
 
-      logger.info('Checking connections', {
+      logger.debug('Checking connections', {
         connectionsCount: connectionsArray.length,
         firstConnection: connectionsArray[0] ? {
           uri: connectionsArray[0].uri,
@@ -382,13 +382,13 @@ export class PlexService {
 
       const localConn = connectionsArray.find((c: any) => c.local === 1 || c.local === '1' || c.local === true);
       if (localConn?.uri) {
-        logger.info('Using local connection', { uri: localConn.uri, accessToken: accessToken ? 'present' : 'none' });
+        logger.debug('Using local connection', { uri: localConn.uri, accessToken: accessToken ? 'present' : 'none' });
         return { serverUrl: localConn.uri, accessToken };
       }
 
       const anyConn = connectionsArray.find((c: any) => c.uri);
       if (anyConn?.uri) {
-        logger.info('Using relay/remote connection', { uri: anyConn.uri, accessToken: accessToken ? 'present' : 'none' });
+        logger.debug('Using relay/remote connection', { uri: anyConn.uri, accessToken: accessToken ? 'present' : 'none' });
         return { serverUrl: anyConn.uri, accessToken };
       }
 
@@ -440,7 +440,7 @@ export class PlexService {
 
       const rootData = rootResponse.data?.MediaContainer;
 
-      logger.info('Plex root response for server name', {
+      logger.debug('Plex root response for server name', {
         friendlyName: rootData?.friendlyName,
         title: rootData?.title,
         keys: rootData ? Object.keys(rootData).slice(0, 10) : []
@@ -464,7 +464,7 @@ export class PlexService {
       const url = this.plexUrl;
       const token = userToken;
 
-      logger.info('getLibraries called', {
+      logger.debug('getLibraries called', {
         hasUrl: !!url,
         hasToken: !!token,
         url: url || 'MISSING'
@@ -612,7 +612,7 @@ export class PlexService {
     }
 
     try {
-      logger.info('Executing Plex search query', { query, endpoint: '/search' });
+      logger.debug('Executing Plex search query', { query, endpoint: '/search' });
 
       const response = await axios.get(`${this.plexUrl}/search`, {
         params: { query },
@@ -622,7 +622,7 @@ export class PlexService {
         },
       });
 
-      logger.info('Search query completed', {
+      logger.debug('Search query completed', {
         hasResults: !!response.data?.MediaContainer?.Metadata,
         resultCount: response.data?.MediaContainer?.Metadata?.length || 0
       });
@@ -646,7 +646,7 @@ export class PlexService {
 
     try {
       const libraries = await this.getLibraries(userToken);
-      logger.info('Fetching recently added from all libraries', {
+      logger.debug('Fetching recently added from all libraries', {
         libraryCount: libraries.length,
         libraries: libraries.map(l => ({ key: l.key, title: l.title, type: l.type }))
       });
@@ -668,7 +668,7 @@ export class PlexService {
           });
 
           const metadata = response.data?.MediaContainer?.Metadata || [];
-          logger.info(`Library ${library.title} recently added`, {
+          logger.debug(`Library ${library.title} recently added`, {
             libraryKey: library.key,
             libraryType: library.type,
             itemCount: metadata.length,
@@ -689,7 +689,7 @@ export class PlexService {
         .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
         .slice(0, limit);
 
-      logger.info('Recently added query completed', {
+      logger.debug('Recently added query completed', {
         requestedLimit: limit,
         totalFetched: allMedia.length,
         returnedCount: sorted.length,

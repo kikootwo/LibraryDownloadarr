@@ -56,7 +56,7 @@ export const createLibrariesRouter = (db: DatabaseService) => {
         return res.status(500).json({ error: 'Plex server not configured' });
       }
 
-      logger.info('Getting libraries', {
+      logger.debug('Getting libraries', {
         userId: req.user?.id,
         username: req.user?.username,
         isAdmin: req.user?.isAdmin

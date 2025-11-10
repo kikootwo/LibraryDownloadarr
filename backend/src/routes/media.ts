@@ -217,7 +217,7 @@ export const createMediaRouter = (db: DatabaseService) => {
         return res.status(500).json({ error: 'Plex server not configured' });
       }
 
-      logger.info('Performing search', { query: q, userId: req.user?.id });
+      logger.debug('Performing search', { query: q, userId: req.user?.id });
 
       plexService.setServerConnection(serverUrl, token);
       let results = await plexService.search(q, token);
@@ -240,7 +240,7 @@ export const createMediaRouter = (db: DatabaseService) => {
       // Remove the score field before sending to client
       const finalResults = scoredResults.map(({ _relevanceScore, ...item }) => item);
 
-      logger.info('Search completed', { query: q, resultCount: finalResults.length });
+      logger.debug('Search completed', { query: q, resultCount: finalResults.length });
 
       return res.json({ results: finalResults });
     } catch (error: any) {
