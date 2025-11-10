@@ -6,48 +6,68 @@
 
 > Your Plex library, ready to download
 
-PlexDownloadarr is a modern web application that provides a user-friendly interface for downloading media from a Plex Media Server. It integrates with Plex's authentication system and respects user permissions, while presenting library content in a sleek, browsable interface similar to Overseerr or Wizarr.
-
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)
 
-## Features
+## Overview
 
-- **Local Admin Setup**: First-time setup wizard for creating local admin account
-- **Plex OAuth Authentication**: Users sign in with their Plex accounts
-- **Library Browsing**: Display movies and TV shows with posters, titles, descriptions, and metadata
-- **Search Functionality**: Search across all accessible libraries
-- **One-Click Downloads**: Download original media files with a single click
-- **Permission Respect**: Honor Plex's user access controls and library restrictions
-- **Responsive Design**: Mobile-friendly interface that works on all devices
-- **Modern Dark Theme**: Aesthetic matching the *arr ecosystem (Sonarr, Radarr, Overseerr)
+PlexDownloadarr is a modern, self-hosted web application that provides a beautiful interface for downloading media from your Plex Media Server. Built with a sleek dark theme reminiscent of the *arr ecosystem (Sonarr, Radarr, Overseerr), it offers a user-friendly way to browse your Plex libraries and download original media files with a single click.
 
-## Tech Stack
+**Key Features:**
+- 🎬 **Plex OAuth Integration** - Users sign in with their existing Plex accounts
+- 🔒 **Secure & Permission-Aware** - Respects Plex's user access controls and library restrictions
+- 📱 **Progressive Web App** - Installable on mobile devices with a native-like experience
+- 🎨 **Modern Interface** - Beautiful, responsive design that works on all devices
+- 🔍 **Smart Search** - Search across all accessible libraries with relevance-based results
+- 📊 **Admin Dashboard** - Download history, logs, and settings management
+- 🚀 **Easy Setup** - Initial setup wizard with guided configuration
 
-### Backend
-- Node.js + Express + TypeScript
-- SQLite database (via better-sqlite3)
-- Plex API integration
-- Session-based authentication
+---
 
-### Frontend
-- React 18 + TypeScript
-- Vite (build tool)
-- Tailwind CSS (styling)
-- Zustand (state management)
-- React Router (routing)
+## Why You Need PlexDownloadarr
 
-## Quick Start with Docker (Recommended)
+### Common Use Cases
+
+**For Plex Server Owners:**
+- **Traveling Users**: Give your users an easy way to download media for offline viewing on flights, road trips, or areas with poor connectivity
+- **Backup & Migration**: Provide a simple interface for users to retrieve their content when migrating devices
+- **Media Sharing**: Allow authorized users to download content you've shared with them from your server
+- **Family & Friends**: Make it easy for less technical users to grab media without needing SSH, FTP, or direct file system access
+
+**For End Users:**
+- **Offline Viewing**: Download movies and shows to watch without an internet connection
+- **Device Transfers**: Move media to devices that don't have Plex apps (e.g., car entertainment systems, older tablets)
+- **Data Management**: Download media to free up Plex server storage while keeping personal backups
+- **No Plex Sync Required**: Direct downloads without needing Plex Pass or configuring Plex Sync
+
+### Why Not Just Use Plex?
+
+While Plex is excellent for streaming, it has limitations for downloading:
+- **Plex Sync** requires Plex Pass (paid subscription)
+- **Mobile Downloads** only work within the Plex app and can't be easily transferred
+- **No Bulk Downloads** - downloading multiple items is cumbersome
+- **Complex for Non-Technical Users** - accessing media files directly requires server access
+
+PlexDownloadarr solves these problems with a simple, web-based interface that works everywhere.
+
+---
+
+## Installation Methods
 
 ### Prerequisites
-- Docker and Docker Compose installed
-- Plex Media Server running and accessible
-- Plex authentication token (can be configured during setup)
 
-### Option 1: Using Prebuilt Image (Easiest)
+Before installing, ensure you have:
+- ✅ **Docker** installed on your system ([Get Docker](https://docs.docker.com/get-docker/))
+- ✅ **Plex Media Server** running and accessible
+- ✅ **Plex Account** with access to your server
 
-1. Create a `docker-compose.yml` file:
+### Method 1: Docker Compose (Recommended)
+
+This is the easiest method for most users. Create a `docker-compose.yml` file:
+
 ```yaml
+version: '3.8'
+
 services:
   plexdownloadarr:
     image: ghcr.io/kikootwo/plexdownloadarr:latest
@@ -59,10 +79,10 @@ services:
       - PORT=5069
       - LOG_LEVEL=info
       - DATABASE_PATH=/app/data/plexdownloadarr.db
-      - TZ=America/New_York  # Set to your timezone
+      - TZ=America/New_York  # Change to your timezone
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - ./data:/app/data      # Database and application data
+      - ./logs:/app/logs      # Application logs
     networks:
       - plexdownloadarr
 
@@ -71,291 +91,407 @@ networks:
     driver: bridge
 ```
 
-2. Start the application:
+**Start the application:**
+
 ```bash
 docker-compose up -d
 ```
 
-3. Access the application at `http://localhost:5069`
+**Access the application at:** `http://localhost:5069`
 
-4. Complete the initial setup wizard:
-   - Create your admin account
-   - Configure Plex server connection (URL, token, and machine ID)
-   - Start browsing and downloading!
+### Method 2: Docker Run
 
-### Option 2: Build from Source
+If you prefer using `docker run` directly:
 
-1. Clone the repository:
 ```bash
+docker run -d \
+  --name plexdownloadarr \
+  --restart unless-stopped \
+  -p 5069:5069 \
+  -e PORT=5069 \
+  -e LOG_LEVEL=info \
+  -e DATABASE_PATH=/app/data/plexdownloadarr.db \
+  -e TZ=America/New_York \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  ghcr.io/kikootwo/plexdownloadarr:latest
+```
+
+### Method 3: Build from Source
+
+If you want to build the image yourself:
+
+```bash
+# Clone the repository
 git clone https://github.com/kikootwo/PlexDownloadarr.git
 cd PlexDownloadarr
+
+# Build and start with Docker Compose
+docker-compose up -d --build
 ```
 
-2. (Optional) Edit `docker-compose.yml` to customize configuration:
-   - Change the port mapping if needed (default: 5069)
-   - Set log level (default: info)
-   - Set timezone (default: America/New_York)
-   - Optionally pre-configure Plex URL and token
+### Configuration Options
 
-3. Start the application:
-```bash
-docker-compose up -d
+Customize your deployment with environment variables:
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `PORT` | Application port | `5069` | `3000` |
+| `LOG_LEVEL` | Logging verbosity | `info` | `debug`, `warn`, `error` |
+| `DATABASE_PATH` | SQLite database location | `/app/data/plexdownloadarr.db` | `/data/db.sqlite` |
+| `TZ` | Timezone for logs and dates | `America/New_York` | `Europe/London`, `Asia/Tokyo` |
+
+### Initial Setup
+
+1. **Navigate to your PlexDownloadarr instance** (e.g., `http://localhost:5069`)
+
+2. **Create Admin Account** (First-time only):
+   - Choose a username and secure password
+   - This account has full administrative access
+
+3. **Configure Plex Connection** (Settings page):
+   - **Plex Server URL**: Your Plex server address (e.g., `http://192.168.1.100:32400`)
+   - **Plex Token**: Your Plex authentication token ([How to find your token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/))
+   - Click **Test Connection** to verify
+   - Server details (Machine ID and Name) are fetched automatically
+
+4. **Start Using**:
+   - Admin can log in with username/password
+   - Users sign in with their Plex accounts via OAuth
+
+### Reverse Proxy Setup (Production)
+
+For production deployments, use a reverse proxy with HTTPS:
+
+#### Nginx Example
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name downloads.yourdomain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://localhost:5069;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 ```
 
-4. Access the application at `http://localhost:5069`
+#### Traefik Example (docker-compose.yml)
 
-5. Complete the initial setup wizard:
-   - Create your admin account
-   - Configure Plex server connection (URL, token, and machine ID)
-   - Start browsing and downloading!
+```yaml
+services:
+  plexdownloadarr:
+    image: ghcr.io/kikootwo/plexdownloadarr:latest
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plexdownloadarr.rule=Host(`downloads.yourdomain.com`)"
+      - "traefik.http.routers.plexdownloadarr.entrypoints=websecure"
+      - "traefik.http.routers.plexdownloadarr.tls.certresolver=letsencrypt"
+      - "traefik.http.services.plexdownloadarr.loadbalancer.server.port=5069"
+```
 
-## Manual Installation (Development)
+---
 
-### Prerequisites
-- Node.js 20+ and npm
-- Plex Media Server
+## How It Works
 
-### Backend Setup
+### Authentication Flow
+
+PlexDownloadarr uses a dual authentication system:
+
+1. **Admin Authentication**:
+   - One-time setup creates a local admin account
+   - Admin can configure Plex connection settings
+   - Access to admin features (settings, logs, all download history)
+
+2. **Plex OAuth Authentication** (Recommended for users):
+   - Users click "Sign in with Plex"
+   - Redirected to Plex.tv for authorization
+   - PlexDownloadarr verifies user has access to your configured Plex server
+   - User's Plex permissions are automatically enforced
+
+### Security Model
+
+**Server Lock**: PlexDownloadarr stores your Plex server's Machine ID during setup. When users authenticate:
+- The app verifies they have access to YOUR specific Plex server
+- Users without access to your server are denied
+- This prevents random Plex users from accessing your server through your PlexDownloadarr instance
+
+**Permission Inheritance**: All Plex permissions are respected:
+- Users only see libraries they have access to
+- Downloads use the user's own Plex token
+- Shared library restrictions apply
+
+### Download Process
+
+1. **User browses libraries** available to their Plex account
+2. **Search or browse** for desired media
+3. **Click download** on a movie, episode, or track
+4. **File streams through PlexDownloadarr** to the user's browser
+5. **Download recorded** in history (visible to admins)
+
+### Data Storage
+
+- **Database**: SQLite database stores users, sessions, settings, and download history
+- **Logs**: Application logs written to `logs/` directory
+- **No Media Storage**: PlexDownloadarr doesn't store media files—it streams them directly from your Plex server
+
+### System Requirements
+
+**Minimal:**
+- CPU: 1 core
+- RAM: 512 MB
+- Storage: 100 MB (plus space for logs and database)
+- Network: Access to Plex server
+
+**Recommended:**
+- CPU: 2+ cores (for concurrent downloads)
+- RAM: 1 GB
+- Storage: 1 GB
+- Network: Good bandwidth between PlexDownloadarr and Plex server
+
+---
+
+## How to Contribute
+
+We welcome contributions from the community! Here's how you can help:
+
+### Reporting Issues
+
+Found a bug or have a feature request?
+
+1. **Check existing issues** to avoid duplicates
+2. **Open a new issue** with:
+   - Clear description of the problem/feature
+   - Steps to reproduce (for bugs)
+   - Expected vs actual behavior
+   - Environment details (Docker version, browser, etc.)
+
+### Contributing Code
+
+1. **Fork the repository**
+   ```bash
+   git fork https://github.com/kikootwo/PlexDownloadarr.git
+   ```
+
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Make your changes**
+   - Follow existing code style
+   - Add comments for complex logic
+   - Update documentation as needed
+
+4. **Test your changes**
+   ```bash
+   # Backend tests
+   cd backend
+   npm test
+
+   # Frontend tests
+   cd frontend
+   npm test
+
+   # Build test
+   docker-compose build
+   ```
+
+5. **Commit with clear messages**
+   ```bash
+   git commit -m "Add feature: descriptive message"
+   ```
+
+6. **Push and create Pull Request**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+### Development Setup
+
+For local development:
 
 ```bash
+# Clone repository
+git clone https://github.com/kikootwo/PlexDownloadarr.git
+cd PlexDownloadarr
+
+# Backend (runs on port 5069)
 cd backend
 npm install
 npm run dev
-```
 
-The backend will start on `http://localhost:5069`. You can set environment variables if needed:
-```bash
-PORT=5069 LOG_LEVEL=debug npm run dev
-```
-
-### Frontend Setup
-
-```bash
+# Frontend (runs on port 5173)
 cd frontend
 npm install
 npm run dev
 ```
 
-The frontend will start on `http://localhost:3000` and proxy API requests to the backend.
+See [CLAUDE.md](./CLAUDE.md) for detailed developer documentation.
 
-## Configuration
+### Areas We Need Help
 
-All configuration is done via docker-compose environment variables or through the web UI.
+- 🎨 **UI/UX improvements** - Design enhancements, mobile optimization
+- 🐛 **Bug fixes** - Check the Issues tab
+- 📚 **Documentation** - Tutorials, guides, translations
+- ✨ **Features** - See our [Roadmap](#roadmap) below
+- 🧪 **Testing** - Test coverage, edge cases, cross-platform testing
 
-### Environment Variables
+### Code of Conduct
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `5069` |
-| `LOG_LEVEL` | Logging level (info/debug/warn/error) | `info` |
-| `DATABASE_PATH` | Path to SQLite database | `./data/plexdownloadarr.db` |
-| `TZ` | Timezone for logs and timestamps (e.g., `America/New_York`, `Europe/London`, `Asia/Tokyo`) | `America/New_York` |
+- Be respectful and inclusive
+- Provide constructive feedback
+- Focus on the issue, not the person
+- Follow project coding standards
 
-### Docker Volumes
-
-The docker-compose setup mounts two directories:
-- `./data` - Database and application data (persistent)
-- `./logs` - Application logs
-
-## Usage
-
-### First-Time Setup
-
-1. Navigate to PlexDownloadarr URL
-2. You'll be redirected to the setup page
-3. Create an admin account:
-   - Username
-   - Password
-   - Email
-4. Configure Plex connection (optional at this stage):
-   - Plex Server URL
-   - Plex Token
-5. Click "Complete Setup"
-
-### Admin Login
-
-Use the admin credentials you created during setup to log in at `/login`.
-
-### Plex User Login
-
-1. Click "Sign in with Plex"
-2. Authorize in the Plex window
-3. You'll be automatically logged in
-
-### Browsing and Downloading
-
-1. Select a library from the sidebar
-2. Browse through your media with posters and metadata
-3. Click on any item to view details
-4. Click "Download" to download the media file
-
-### Settings (Admin Only)
-
-Access `/settings` to configure:
-- Plex server URL
-- Plex authentication token
-- Plex server machine ID (identifies your specific server for OAuth security)
-- Test Plex connection
-- Change admin password
-
-## API Documentation
-
-### Authentication Endpoints
-
-- `GET /api/auth/setup/required` - Check if setup is required
-- `POST /api/auth/setup` - Complete initial setup
-- `POST /api/auth/login` - Admin login
-- `POST /api/auth/plex/pin` - Generate Plex PIN for OAuth
-- `POST /api/auth/plex/authenticate` - Authenticate with Plex PIN
-- `GET /api/auth/me` - Get current user
-- `POST /api/auth/logout` - Logout
-
-### Library Endpoints
-
-- `GET /api/libraries` - Get all libraries
-- `GET /api/libraries/:libraryKey/content` - Get library content
-
-### Media Endpoints
-
-- `GET /api/media/search?q=query` - Search media
-- `GET /api/media/:ratingKey` - Get media metadata
-- `GET /api/media/:ratingKey/download?partKey=key` - Download media file
-- `GET /api/media/thumb/:ratingKey?path=path` - Get thumbnail/poster
-
-### Settings Endpoints (Admin Only)
-
-- `GET /api/settings` - Get settings
-- `PUT /api/settings` - Update settings
-- `POST /api/settings/test-connection` - Test Plex connection
-
-## Project Structure
-
-```
-PlexDownloadarr/
-├── backend/                 # Backend (Node.js + Express)
-│   ├── src/
-│   │   ├── config/         # Configuration
-│   │   ├── middleware/     # Express middleware
-│   │   ├── models/         # Database models
-│   │   ├── routes/         # API routes
-│   │   ├── services/       # Business logic (Plex service)
-│   │   ├── utils/          # Utilities (logger)
-│   │   └── index.ts        # Entry point
-│   ├── package.json
-│   └── tsconfig.json
-├── frontend/               # Frontend (React + TypeScript)
-│   ├── src/
-│   │   ├── components/    # React components
-│   │   ├── pages/         # Page components
-│   │   ├── services/      # API client
-│   │   ├── stores/        # State management (Zustand)
-│   │   ├── styles/        # Global styles
-│   │   ├── types/         # TypeScript types
-│   │   ├── App.tsx        # Main app component
-│   │   └── main.tsx       # Entry point
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
-│   └── tailwind.config.js
-├── Dockerfile             # Docker configuration
-├── docker-compose.yml     # Docker Compose configuration
-└── README.md             # This file
-```
-
-## Security Considerations
-
-- **Server Lock**: Machine ID validation ensures users can only access YOUR Plex server, preventing abuse
-- **Use HTTPS in production**: Configure a reverse proxy (nginx, Traefik, Caddy)
-- **Plex OAuth**: Users log in with their own Plex accounts and permissions are enforced
-- **Rate limiting**: Enabled on all API endpoints to prevent abuse
-- **Sessions**: Database-backed sessions expire after 24 hours
-- **File logging**: All operations logged to `logs/` for audit trails
+---
 
 ## Troubleshooting
 
 ### Cannot connect to Plex server
 
-1. Verify Plex URL is correct and accessible
-2. Verify Plex token is valid
-3. Check firewall rules
-4. Use "Test Connection" in settings
+**Symptoms**: "Failed to connect" errors in settings or when browsing
 
-### Downloads not working
+**Solutions**:
+1. Verify Plex server URL is correct and accessible from the PlexDownloadarr container
+2. Check Plex token is valid ([Generate new token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/))
+3. Use the **Test Connection** button in Settings
+4. Check firewall rules between PlexDownloadarr and Plex server
+5. For Docker: Ensure network connectivity (`docker network inspect`)
 
-1. Ensure user has proper Plex permissions
-2. Check that Plex server is accessible from PlexDownloadarr
-3. Verify file exists in Plex library
+### Plex OAuth login fails
 
-### Frontend not loading
+**Symptoms**: "Access denied" or "No access to server" errors
 
-1. Check that backend is running
-2. Verify port 5069 is accessible
-3. Check browser console for errors
+**Solutions**:
+1. Ensure Plex server Machine ID is correctly configured in Settings
+2. Verify user has been granted access to your Plex server
+3. Check that user's Plex account is active and not suspended
+4. Try logging in directly to Plex web interface to verify account status
 
-## Development
+### Downloads not starting
 
-### Backend Development
+**Symptoms**: Download button doesn't work or fails immediately
 
-```bash
-cd backend
-npm run dev  # Starts with nodemon for auto-reload
-```
+**Solutions**:
+1. Check browser console for JavaScript errors (F12 → Console tab)
+2. Verify user has proper Plex library permissions
+3. Check file exists and is accessible in Plex
+4. Review logs: `docker logs plexdownloadarr`
+5. Ensure browser allows popups and downloads
 
-### Frontend Development
+### Port already in use
 
-```bash
-cd frontend
-npm run dev  # Starts Vite dev server with HMR
-```
+**Symptoms**: Container fails to start with port binding error
 
-### Building for Production
+**Solutions**:
+1. Change port mapping in docker-compose.yml: `"8080:5069"` (use 8080 or another free port)
+2. Find process using port: `lsof -i :5069` or `netstat -tulpn | grep 5069`
+3. Stop conflicting service or choose different port
 
-```bash
-# Backend
-cd backend
-npm run build
+### Container won't start
 
-# Frontend
-cd frontend
-npm run build
+**Symptoms**: Container exits immediately or won't start
 
-# Or use Docker
-docker-compose build
-```
+**Solutions**:
+1. Check logs: `docker logs plexdownloadarr`
+2. Verify volume paths exist and have correct permissions
+3. Ensure Docker has enough resources (RAM, CPU)
+4. Try pulling latest image: `docker-compose pull`
+5. Clean rebuild: `docker-compose down && docker-compose up -d --build`
 
-## Contributing
+---
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Roadmap
+
+### Current Features ✅
+- Plex OAuth authentication
+- Library browsing with posters and metadata
+- Search across all libraries
+- One-click downloads
+- Admin settings and configuration
+- Download history tracking
+- System logs viewer
+- Mobile-responsive design
+- Progressive Web App support
+
+### Planned Features 🚧
+
+**Short-term:**
+- [ ] Batch downloads (download multiple items as ZIP)
+- [ ] Quality selection (when multiple versions exist)
+- [ ] Download queue with progress tracking
+- [ ] Collections support
+- [ ] Advanced filters (genre, year, rating, resolution)
+
+**Mid-term:**
+- [ ] User management dashboard for admins
+- [ ] Email notifications for downloads
+- [ ] Download scheduling
+- [ ] API rate limiting per user
+- [ ] Multi-language support
+
+**Long-term:**
+- [ ] Mobile app (React Native)
+- [ ] Integration with external storage (S3, OneDrive, etc.)
+- [ ] Transcoding options before download
+- [ ] Plugin system for extensibility
+
+Want to help implement any of these? Check out [How to Contribute](#how-to-contribute)!
+
+---
+
+## Security Considerations
+
+**Production Deployment Checklist:**
+- ✅ Use HTTPS via reverse proxy (nginx, Traefik, Caddy)
+- ✅ Set strong admin password during initial setup
+- ✅ Configure proper Plex server URL (not public if on local network)
+- ✅ Keep Plex token secure (never commit to version control)
+- ✅ Regularly update to latest Docker image
+- ✅ Monitor logs for suspicious activity
+- ✅ Use network isolation (Docker networks)
+- ✅ Implement rate limiting at reverse proxy level
+
+**Built-in Security Features:**
+- Session-based authentication with 24-hour expiration
+- Machine ID validation prevents unauthorized server access
+- Rate limiting on API endpoints
+- User permissions inherited from Plex
+- All operations logged for audit trails
+- CORS protection enabled
+
+---
+
+## Support & Community
+
+- 💬 **Issues**: [GitHub Issues](https://github.com/kikootwo/PlexDownloadarr/issues)
+- 📚 **Documentation**: See [CLAUDE.md](./CLAUDE.md) for developer docs
+- 🐛 **Bug Reports**: Use the issue template on GitHub
+- 💡 **Feature Requests**: Open an issue with the "enhancement" label
+
+---
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
 - Inspired by [Overseerr](https://overseerr.dev) and [Wizarr](https://wizarr.dev)
-- Built with [Plex API](https://github.com/phillipj/node-plex-api)
-- UI design inspired by the *arr ecosystem
-
-## Roadmap
-
-### Future Features
-
-- Batch downloads (download multiple items as zip)
-- Quality selection (if multiple versions exist)
-- Download queue with progress tracking
-- Recently added media section
-- Collections support
-- User management dashboard for admins
-- Advanced filters (genre, year, rating, resolution)
-- Continue watching integration
-- Download history and statistics
-- Mobile app (React Native)
-
-## Support
-
-For issues, questions, or feature requests, please open an issue on GitHub.
+- Built with [Plex API](https://www.plexopedia.com/plex-media-server/api/)
+- UI design inspired by the *arr ecosystem (Sonarr, Radarr, Prowlarr)
+- Special thanks to all [contributors](https://github.com/kikootwo/PlexDownloadarr/graphs/contributors)
 
 ---
 
+<p align="center">
 Made with ❤️ for the Plex community
+</p>
