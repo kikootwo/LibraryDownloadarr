@@ -9,6 +9,7 @@ export const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isPlexLoading, setIsPlexLoading] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const navigate = useNavigate();
   const { login, setUser, setToken, token, user } = useAuthStore();
 
@@ -117,63 +118,104 @@ export const Login: React.FC = () => {
         </div>
 
         <div className="card p-6 md:p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm md:text-base font-medium mb-2">Username</label>
-              <input
-                type="text"
-                required
-                className="input text-sm md:text-base"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm md:text-base font-medium mb-2">Password</label>
-              <input
-                type="password"
-                required
-                className="input text-sm md:text-base"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-lg text-xs md:text-sm">
-                {error}
-              </div>
-            )}
-
-            <button type="submit" disabled={isLoading} className="btn-primary w-full text-sm md:text-base">
-              {isLoading ? 'Logging in...' : 'Login'}
-            </button>
-          </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-dark-50"></div>
-            </div>
-            <div className="relative flex justify-center text-xs md:text-sm">
-              <span className="px-2 bg-dark-100 text-gray-400">Or</span>
-            </div>
+          {/* Primary: Plex Login */}
+          <div className="text-center mb-6">
+            <h2 className="text-xl md:text-2xl font-bold mb-2">Sign In</h2>
+            <p className="text-sm md:text-base text-gray-400">Use your Plex account to get started</p>
           </div>
 
           <button
             onClick={handlePlexLogin}
             disabled={isPlexLoading}
-            className="btn-secondary w-full flex items-center justify-center space-x-2 text-sm md:text-base"
+            className="btn-primary w-full flex items-center justify-center space-x-3 text-base md:text-lg py-4 font-semibold shadow-lg hover:shadow-xl transition-shadow"
           >
-            <span className="text-lg md:text-xl">🎬</span>
+            <span className="text-2xl md:text-3xl">🎬</span>
             <span>{isPlexLoading ? 'Waiting for Plex...' : 'Sign in with Plex'}</span>
           </button>
 
           {isPlexLoading && (
-            <p className="text-xs md:text-sm text-gray-400 text-center mt-4">
-              Waiting for Plex authorization... Complete the login in the new tab/window.
-            </p>
+            <div className="mt-4 p-4 bg-primary-500/10 border border-primary-500/20 rounded-lg">
+              <p className="text-xs md:text-sm text-gray-300 text-center">
+                <strong>Waiting for authorization...</strong>
+                <br />
+                Complete the login in the popup window.
+              </p>
+            </div>
           )}
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-xs md:text-sm mt-4">
+              {error}
+            </div>
+          )}
+
+          {/* Secondary: Admin Login */}
+          <div className="mt-8 pt-6 border-t border-dark-50">
+            {!showAdminLogin ? (
+              <button
+                onClick={() => setShowAdminLogin(true)}
+                className="text-sm text-gray-400 hover:text-gray-300 transition-colors w-full text-center"
+              >
+                Administrator login
+              </button>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-300">Administrator Login</h3>
+                  <button
+                    onClick={() => {
+                      setShowAdminLogin(false);
+                      setError('');
+                      setUsername('');
+                      setPassword('');
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium mb-1.5 text-gray-300">Username</label>
+                    <input
+                      type="text"
+                      required
+                      className="input text-sm"
+                      placeholder="Admin username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs md:text-sm font-medium mb-1.5 text-gray-300">Password</label>
+                    <input
+                      type="password"
+                      required
+                      className="input text-sm"
+                      placeholder="Admin password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+
+                  <button type="submit" disabled={isLoading} className="btn-secondary w-full text-sm py-2.5">
+                    {isLoading ? 'Logging in...' : 'Sign In as Admin'}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Helpful note */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500">
+            Most users should sign in with Plex.
+            <br />
+            Administrator access is only needed for system configuration.
+          </p>
         </div>
       </div>
     </div>

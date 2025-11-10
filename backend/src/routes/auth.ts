@@ -127,14 +127,14 @@ export const createAuthRouter = (db: DatabaseService) => {
         return res.status(400).json({ error: 'PIN ID is required' });
       }
 
-      logger.info('Checking Plex PIN', { pinId });
+      logger.debug('Checking Plex PIN', { pinId });
 
       const authResponse = await plexService.checkPin(pinId);
       if (!authResponse) {
         return res.status(400).json({ error: 'PIN not yet authorized' });
       }
 
-      logger.info('Plex PIN authorized', { username: authResponse.user.username });
+      logger.debug('Plex PIN authorized', { username: authResponse.user.username });
 
       // SECURITY: Validate user has access to admin's configured Plex server
       const adminServerUrl = db.getSetting('plex_url') || '';
@@ -170,7 +170,7 @@ export const createAuthRouter = (db: DatabaseService) => {
         // For shared servers, use the server's accessToken; for owned servers, use the user's auth token
         userToken = connection.accessToken || authResponse.authToken;
 
-        logger.info('User validated for admin server', {
+        logger.debug('User validated for admin server', {
           username: authResponse.user.username,
           hasAccessToken: !!connection.accessToken,
           isSharedServer: !!connection.accessToken

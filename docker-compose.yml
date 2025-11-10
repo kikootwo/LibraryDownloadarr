@@ -8,7 +8,7 @@ services:
     environment:
       # Server configuration
       - PORT=5069
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       # Database path (persisted to volume)
       - DATABASE_PATH=/app/data/plexdownloadarr.db
       # Timezone configuration (set to your local timezone)

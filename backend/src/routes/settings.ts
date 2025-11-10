@@ -59,7 +59,7 @@ export const createSettingsRouter = (db: DatabaseService) => {
               db.setSetting('plex_machine_id', serverInfo.machineIdentifier);
               db.setSetting('plex_server_name', serverInfo.friendlyName);
 
-              logger.info('Auto-fetched server identity', {
+              logger.debug('Auto-fetched server identity', {
                 machineId: serverInfo.machineIdentifier,
                 serverName: serverInfo.friendlyName
               });

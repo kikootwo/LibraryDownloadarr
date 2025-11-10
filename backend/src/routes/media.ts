@@ -217,7 +217,7 @@ export const createMediaRouter = (db: DatabaseService) => {
         return res.status(500).json({ error: 'Plex server not configured' });
       }
 
-      logger.info('Performing search', { query: q, userId: req.user?.id });
+      logger.debug('Performing search', { query: q, userId: req.user?.id });
 
       plexService.setServerConnection(serverUrl, token);
       let results = await plexService.search(q, token);
@@ -240,7 +240,7 @@ export const createMediaRouter = (db: DatabaseService) => {
       // Remove the score field before sending to client
       const finalResults = scoredResults.map(({ _relevanceScore, ...item }) => item);
 
-      logger.info('Search completed', { query: q, resultCount: finalResults.length });
+      logger.debug('Search completed', { query: q, resultCount: finalResults.length });
 
       return res.json({ results: finalResults });
     } catch (error: any) {
@@ -373,6 +373,41 @@ export const createMediaRouter = (db: DatabaseService) => {
 
       const metadata = await plexService.getMediaMetadata(ratingKey, token);
 
+      // Log metadata for debugging permission issues
+      logger.info('Download request metadata', {
+        userId: req.user?.id,
+        username: req.user?.username,
+        isAdmin: req.user?.isAdmin,
+        ratingKey,
+        mediaTitle: metadata.title,
+        allowSync: metadata.allowSync,
+        allowSyncType: typeof metadata.allowSync,
+        metadataKeys: Object.keys(metadata).filter(k => k.includes('allow') || k.includes('sync') || k.includes('permission'))
+      });
+
+      // Check if user has download permission
+      // Logic: Block ONLY if allowSync is explicitly disabled (false/0)
+      // - Admin users: always allowed (they manage the server)
+      // - Owned server users: allowSync undefined = allowed (no restriction)
+      // - Shared server users: allowSync false/0 = explicitly disabled
+      const isExplicitlyDisabled = metadata.allowSync === false ||
+                                   metadata.allowSync === 0 ||
+                                   metadata.allowSync === '0';
+
+      if (isExplicitlyDisabled && !req.user?.isAdmin) {
+        logger.warn('Download denied: user lacks download permission', {
+          userId: req.user?.id,
+          username: req.user?.username,
+          isAdmin: req.user?.isAdmin,
+          ratingKey,
+          mediaTitle: metadata.title,
+          allowSync: metadata.allowSync
+        });
+        return res.status(403).json({
+          error: 'Download not allowed. The server administrator has disabled downloads for your account.'
+        });
+      }
+
       // Get library information for better download title
       let libraryTitle = metadata.librarySectionTitle || 'Unknown Library';
       if (!libraryTitle || libraryTitle === 'Unknown Library') {
@@ -393,11 +428,32 @@ export const createMediaRouter = (db: DatabaseService) => {
       const downloadUrl = plexService.getDownloadUrl(partKey, token);
 
       // Stream the file through our server
-      const response = await axios({
-        method: 'GET',
-        url: downloadUrl,
-        responseType: 'stream',
-      });
+      let response;
+      try {
+        response = await axios({
+          method: 'GET',
+          url: downloadUrl,
+          responseType: 'stream',
+        });
+      } catch (downloadError: any) {
+        // If Plex returns 403, it means the user doesn't have download permission
+        if (downloadError.response?.status === 403) {
+          logger.warn('Download denied by Plex server (403)', {
+            userId: req.user?.id,
+            username: req.user?.username,
+            isAdmin: req.user?.isAdmin,
+            ratingKey,
+            mediaTitle: metadata.title,
+            allowSync: metadata.allowSync,
+            plexErrorStatus: 403
+          });
+          return res.status(403).json({
+            error: 'Download not allowed. The Plex server has denied access to this file. Check your download permissions in Plex settings.'
+          });
+        }
+        // Re-throw other errors
+        throw downloadError;
+      }
 
       // Get file size from response headers (works for all media types)
       const fileSize = response.headers['content-length']
