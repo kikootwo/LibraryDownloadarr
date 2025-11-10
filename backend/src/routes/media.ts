@@ -428,11 +428,32 @@ export const createMediaRouter = (db: DatabaseService) => {
       const downloadUrl = plexService.getDownloadUrl(partKey, token);
 
       // Stream the file through our server
-      const response = await axios({
-        method: 'GET',
-        url: downloadUrl,
-        responseType: 'stream',
-      });
+      let response;
+      try {
+        response = await axios({
+          method: 'GET',
+          url: downloadUrl,
+          responseType: 'stream',
+        });
+      } catch (downloadError: any) {
+        // If Plex returns 403, it means the user doesn't have download permission
+        if (downloadError.response?.status === 403) {
+          logger.warn('Download denied by Plex server (403)', {
+            userId: req.user?.id,
+            username: req.user?.username,
+            isAdmin: req.user?.isAdmin,
+            ratingKey,
+            mediaTitle: metadata.title,
+            allowSync: metadata.allowSync,
+            plexErrorStatus: 403
+          });
+          return res.status(403).json({
+            error: 'Download not allowed. The Plex server has denied access to this file. Check your download permissions in Plex settings.'
+          });
+        }
+        // Re-throw other errors
+        throw downloadError;
+      }
 
       // Get file size from response headers (works for all media types)
       const fileSize = response.headers['content-length']
