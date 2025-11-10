@@ -374,14 +374,19 @@ export const createMediaRouter = (db: DatabaseService) => {
       const metadata = await plexService.getMediaMetadata(ratingKey, token);
 
       // Check if user has download permission (allowSync field)
-      // When downloads are disabled in Plex share settings, allowSync is false or 0
-      if (metadata.allowSync === false || metadata.allowSync === 0 || metadata.allowSync === '0') {
+      // SECURITY: Only allow downloads if allowSync is explicitly true/1/'1'
+      // Default to deny if undefined/null/false (secure by default)
+      const allowSync = metadata.allowSync;
+      const isDownloadAllowed = allowSync === true || allowSync === 1 || allowSync === '1';
+
+      if (!isDownloadAllowed) {
         logger.warn('Download denied: user lacks download permission', {
           userId: req.user?.id,
           username: req.user?.username,
           ratingKey,
           mediaTitle: metadata.title,
-          allowSync: metadata.allowSync
+          allowSync: metadata.allowSync,
+          allowSyncType: typeof metadata.allowSync
         });
         return res.status(403).json({
           error: 'Download not allowed. The server administrator has disabled downloads for your account.'
