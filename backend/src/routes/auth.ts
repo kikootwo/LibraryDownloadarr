@@ -107,9 +107,9 @@ export const createAuthRouter = (db: DatabaseService) => {
         id: pin.id,
         code: pin.code,
         url: `https://app.plex.tv/auth#?clientID=${encodeURIComponent(
-          'plexdownloadarr'
+          'librarydownloadarr'
         )}&code=${encodeURIComponent(pin.code)}&context[device][product]=${encodeURIComponent(
-          'PlexDownloadarr'
+          'LibraryDownloadarr'
         )}`,
       });
     } catch (error) {
