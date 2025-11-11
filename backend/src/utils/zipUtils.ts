@@ -40,6 +40,9 @@ export const createZipStream = async (
     // Set response headers
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     // If we know the total size, set Content-Length header
     // Note: This is approximate because zip adds some overhead
