@@ -5,13 +5,13 @@ export const config = {
     port: parseInt(process.env.PORT || '5069', 10),
   },
   plex: {
-    clientIdentifier: 'plexdownloadarr',
-    product: 'PlexDownloadarr',
+    clientIdentifier: 'librarydownloadarr',
+    product: 'LibraryDownloadarr',
     version: '1.0.0',
     device: 'Server',
   },
   database: {
-    path: process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'plexdownloadarr.db'),
+    path: process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'librarydownloadarr.db'),
   },
   logging: {
     level: process.env.LOG_LEVEL || 'info',

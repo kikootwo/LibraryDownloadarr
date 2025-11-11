@@ -77,6 +77,6 @@ jobs:
           echo "To use this image:" >> $GITHUB_STEP_SUMMARY
           echo '```yaml' >> $GITHUB_STEP_SUMMARY
           echo "services:" >> $GITHUB_STEP_SUMMARY
-          echo "  plexdownloadarr:" >> $GITHUB_STEP_SUMMARY
+          echo "  librarydownloadarr:" >> $GITHUB_STEP_SUMMARY
           echo "    image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

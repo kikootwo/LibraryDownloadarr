@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           )}
 
           <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
-            PlexDownloadarr
+            LibraryDownloadarr
           </h1>
         </div>
 

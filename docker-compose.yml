@@ -1,7 +1,7 @@
 services:
-  plexdownloadarr:
+  librarydownloadarr:
     build: .
-    container_name: plexdownloadarr
+    container_name: librarydownloadarr
     restart: unless-stopped
     ports:
       - "5069:5069"
@@ -10,15 +10,15 @@ services:
       - PORT=5069
       - LOG_LEVEL=debug
       # Database path (persisted to volume)
-      - DATABASE_PATH=/app/data/plexdownloadarr.db
+      - DATABASE_PATH=/app/data/librarydownloadarr.db
       # Timezone configuration (set to your local timezone)
       - TZ=America/New_York
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     networks:
-      - plexdownloadarr
+      - librarydownloadarr
 
 networks:
-  plexdownloadarr:
+  librarydownloadarr:
     driver: bridge

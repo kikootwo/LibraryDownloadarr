@@ -34,7 +34,7 @@ export const Setup: React.FC = () => {
       <div className="max-w-xl w-full">
         <div className="text-center mb-6 md:mb-8">
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent mb-2">
-            PlexDownloadarr
+            LibraryDownloadarr
           </h1>
           <p className="text-base md:text-lg text-gray-300 font-medium">Welcome! Let's get started</p>
         </div>

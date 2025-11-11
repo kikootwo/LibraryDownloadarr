@@ -1,7 +1,7 @@
-# PlexDownloadarr
+# LibraryDownloadarr
 
 <p align="center">
-  <img src="plexdownloadarr.png" alt="PlexDownloadarr Banner" width="600"/>
+  <img src="librarydownloadarr.png" alt="LibraryDownloadarr Banner" width="600"/>
 </p>
 
 > Your Plex library, ready to download
@@ -11,7 +11,7 @@
 
 ## Overview
 
-PlexDownloadarr is a modern, self-hosted web application that provides a beautiful interface for downloading media from your Plex Media Server. Built with a sleek dark theme reminiscent of the *arr ecosystem (Sonarr, Radarr, Overseerr), it offers a user-friendly way to browse your Plex libraries and download original media files with a single click.
+LibraryDownloadarr is a modern, self-hosted web application that provides a beautiful interface for downloading media from your Plex Media Server. Built with a sleek dark theme reminiscent of the *arr ecosystem (Sonarr, Radarr, Overseerr), it offers a user-friendly way to browse your Plex libraries and download original media files with a single click.
 
 **Key Features:**
 - 🎬 **Plex OAuth Integration** - Users sign in with their existing Plex accounts
@@ -24,7 +24,7 @@ PlexDownloadarr is a modern, self-hosted web application that provides a beautif
 
 ---
 
-## Why You Need PlexDownloadarr
+## Why You Need LibraryDownloadarr
 
 ### Common Use Cases
 
@@ -48,7 +48,7 @@ While Plex is excellent for streaming, it has limitations for downloading:
 - **No Bulk Downloads** - downloading multiple items is cumbersome
 - **Complex for Non-Technical Users** - accessing media files directly requires server access
 
-PlexDownloadarr solves these problems with a simple, web-based interface that works everywhere.
+LibraryDownloadarr solves these problems with a simple, web-based interface that works everywhere.
 
 ---
 
@@ -69,25 +69,25 @@ This is the easiest method for most users. Create a `docker-compose.yml` file:
 version: '3.8'
 
 services:
-  plexdownloadarr:
-    image: ghcr.io/kikootwo/plexdownloadarr:latest
-    container_name: plexdownloadarr
+  librarydownloadarr:
+    image: ghcr.io/kikootwo/librarydownloadarr:latest
+    container_name: librarydownloadarr
     restart: unless-stopped
     ports:
       - "5069:5069"
     environment:
       - PORT=5069
       - LOG_LEVEL=info
-      - DATABASE_PATH=/app/data/plexdownloadarr.db
+      - DATABASE_PATH=/app/data/librarydownloadarr.db
       - TZ=America/New_York  # Change to your timezone
     volumes:
       - ./data:/app/data      # Database and application data
       - ./logs:/app/logs      # Application logs
     networks:
-      - plexdownloadarr
+      - librarydownloadarr
 
 networks:
-  plexdownloadarr:
+  librarydownloadarr:
     driver: bridge
 ```
 
@@ -105,16 +105,16 @@ If you prefer using `docker run` directly:
 
 ```bash
 docker run -d \
-  --name plexdownloadarr \
+  --name librarydownloadarr \
   --restart unless-stopped \
   -p 5069:5069 \
   -e PORT=5069 \
   -e LOG_LEVEL=info \
-  -e DATABASE_PATH=/app/data/plexdownloadarr.db \
+  -e DATABASE_PATH=/app/data/librarydownloadarr.db \
   -e TZ=America/New_York \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/logs:/app/logs \
-  ghcr.io/kikootwo/plexdownloadarr:latest
+  ghcr.io/kikootwo/librarydownloadarr:latest
 ```
 
 ### Method 3: Build from Source
@@ -123,8 +123,8 @@ If you want to build the image yourself:
 
 ```bash
 # Clone the repository
-git clone https://github.com/kikootwo/PlexDownloadarr.git
-cd PlexDownloadarr
+git clone https://github.com/kikootwo/LibraryDownloadarr.git
+cd LibraryDownloadarr
 
 # Build and start with Docker Compose
 docker-compose up -d --build
@@ -138,12 +138,12 @@ Customize your deployment with environment variables:
 |----------|-------------|---------|---------|
 | `PORT` | Application port | `5069` | `3000` |
 | `LOG_LEVEL` | Logging verbosity | `info` | `debug`, `warn`, `error` |
-| `DATABASE_PATH` | SQLite database location | `/app/data/plexdownloadarr.db` | `/data/db.sqlite` |
+| `DATABASE_PATH` | SQLite database location | `/app/data/librarydownloadarr.db` | `/data/db.sqlite` |
 | `TZ` | Timezone for logs and dates | `America/New_York` | `Europe/London`, `Asia/Tokyo` |
 
 ### Initial Setup
 
-1. **Navigate to your PlexDownloadarr instance** (e.g., `http://localhost:5069`)
+1. **Navigate to your LibraryDownloadarr instance** (e.g., `http://localhost:5069`)
 
 2. **Create Admin Account** (First-time only):
    - Choose a username and secure password
@@ -187,14 +187,14 @@ server {
 
 ```yaml
 services:
-  plexdownloadarr:
-    image: ghcr.io/kikootwo/plexdownloadarr:latest
+  librarydownloadarr:
+    image: ghcr.io/kikootwo/librarydownloadarr:latest
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.plexdownloadarr.rule=Host(`downloads.yourdomain.com`)"
-      - "traefik.http.routers.plexdownloadarr.entrypoints=websecure"
-      - "traefik.http.routers.plexdownloadarr.tls.certresolver=letsencrypt"
-      - "traefik.http.services.plexdownloadarr.loadbalancer.server.port=5069"
+      - "traefik.http.routers.librarydownloadarr.rule=Host(`downloads.yourdomain.com`)"
+      - "traefik.http.routers.librarydownloadarr.entrypoints=websecure"
+      - "traefik.http.routers.librarydownloadarr.tls.certresolver=letsencrypt"
+      - "traefik.http.services.librarydownloadarr.loadbalancer.server.port=5069"
 ```
 
 ---
@@ -203,7 +203,7 @@ services:
 
 ### Authentication Flow
 
-PlexDownloadarr uses a dual authentication system:
+LibraryDownloadarr uses a dual authentication system:
 
 1. **Admin Authentication**:
    - One-time setup creates a local admin account
@@ -213,15 +213,15 @@ PlexDownloadarr uses a dual authentication system:
 2. **Plex OAuth Authentication** (Recommended for users):
    - Users click "Sign in with Plex"
    - Redirected to Plex.tv for authorization
-   - PlexDownloadarr verifies user has access to your configured Plex server
+   - LibraryDownloadarr verifies user has access to your configured Plex server
    - User's Plex permissions are automatically enforced
 
 ### Security Model
 
-**Server Lock**: PlexDownloadarr stores your Plex server's Machine ID during setup. When users authenticate:
+**Server Lock**: LibraryDownloadarr stores your Plex server's Machine ID during setup. When users authenticate:
 - The app verifies they have access to YOUR specific Plex server
 - Users without access to your server are denied
-- This prevents random Plex users from accessing your server through your PlexDownloadarr instance
+- This prevents random Plex users from accessing your server through your LibraryDownloadarr instance
 
 **Permission Inheritance**: All Plex permissions are respected:
 - Users only see libraries they have access to
@@ -233,14 +233,14 @@ PlexDownloadarr uses a dual authentication system:
 1. **User browses libraries** available to their Plex account
 2. **Search or browse** for desired media
 3. **Click download** on a movie, episode, or track
-4. **File streams through PlexDownloadarr** to the user's browser
+4. **File streams through LibraryDownloadarr** to the user's browser
 5. **Download recorded** in history (visible to admins)
 
 ### Data Storage
 
 - **Database**: SQLite database stores users, sessions, settings, and download history
 - **Logs**: Application logs written to `logs/` directory
-- **No Media Storage**: PlexDownloadarr doesn't store media files—it streams them directly from your Plex server
+- **No Media Storage**: LibraryDownloadarr doesn't store media files—it streams them directly from your Plex server
 
 ### System Requirements
 
@@ -254,7 +254,7 @@ PlexDownloadarr uses a dual authentication system:
 - CPU: 2+ cores (for concurrent downloads)
 - RAM: 1 GB
 - Storage: 1 GB
-- Network: Good bandwidth between PlexDownloadarr and Plex server
+- Network: Good bandwidth between LibraryDownloadarr and Plex server
 
 ---
 
@@ -277,7 +277,7 @@ Found a bug or have a feature request?
 
 1. **Fork the repository**
    ```bash
-   git fork https://github.com/kikootwo/PlexDownloadarr.git
+   git fork https://github.com/kikootwo/LibraryDownloadarr.git
    ```
 
 2. **Create a feature branch**
@@ -320,8 +320,8 @@ For local development:
 
 ```bash
 # Clone repository
-git clone https://github.com/kikootwo/PlexDownloadarr.git
-cd PlexDownloadarr
+git clone https://github.com/kikootwo/LibraryDownloadarr.git
+cd LibraryDownloadarr
 
 # Backend (runs on port 5069)
 cd backend
@@ -343,10 +343,10 @@ npm run dev
 **Symptoms**: "Failed to connect" errors in settings or when browsing
 
 **Solutions**:
-1. Verify Plex server URL is correct and accessible from the PlexDownloadarr container
+1. Verify Plex server URL is correct and accessible from the LibraryDownloadarr container
 2. Check Plex token is valid ([Generate new token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/))
 3. Use the **Test Connection** button in Settings
-4. Check firewall rules between PlexDownloadarr and Plex server
+4. Check firewall rules between LibraryDownloadarr and Plex server
 5. For Docker: Ensure network connectivity (`docker network inspect`)
 
 ### Plex OAuth login fails
@@ -367,7 +367,7 @@ npm run dev
 1. Check browser console for JavaScript errors (F12 → Console tab)
 2. Verify user has proper Plex library permissions
 3. Check file exists and is accessible in Plex
-4. Review logs: `docker logs plexdownloadarr`
+4. Review logs: `docker logs librarydownloadarr`
 5. Ensure browser allows popups and downloads
 
 ### Port already in use
@@ -384,7 +384,7 @@ npm run dev
 **Symptoms**: Container exits immediately or won't start
 
 **Solutions**:
-1. Check logs: `docker logs plexdownloadarr`
+1. Check logs: `docker logs librarydownloadarr`
 2. Verify volume paths exist and have correct permissions
 3. Ensure Docker has enough resources (RAM, CPU)
 4. Try pulling latest image: `docker-compose pull`
@@ -416,7 +416,7 @@ npm run dev
 
 ## Support & Community
 
-- 💬 **Issues**: [GitHub Issues](https://github.com/kikootwo/PlexDownloadarr/issues)
+- 💬 **Issues**: [GitHub Issues](https://github.com/kikootwo/LibraryDownloadarr/issues)
 - 🐛 **Bug Reports**: Use the issue template on GitHub
 - 💡 **Feature Requests**: Open an issue with the "enhancement" label
 

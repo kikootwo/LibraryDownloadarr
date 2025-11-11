@@ -10,7 +10,7 @@ export const logger = winston.createLogger({
     winston.format.splat(),
     winston.format.json()
   ),
-  defaultMeta: { service: 'plexdownloadarr' },
+  defaultMeta: { service: 'librarydownloadarr' },
   transports: [
     // Console output
     new winston.transports.Console({
@@ -18,7 +18,7 @@ export const logger = winston.createLogger({
         winston.format.colorize(),
         winston.format.printf(({ timestamp, level, message, ...meta }) => {
           let msg = `${timestamp} [${level}]: ${message}`;
-          if (Object.keys(meta).length > 0 && meta.service !== 'plexdownloadarr') {
+          if (Object.keys(meta).length > 0 && meta.service !== 'librarydownloadarr') {
             msg += ` ${JSON.stringify(meta)}`;
           }
           return msg;

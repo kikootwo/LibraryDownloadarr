@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plexdownloadarr-v1';
+const CACHE_NAME = 'librarydownloadarr-v1';
 const urlsToCache = [
   '/',
   '/index.html',

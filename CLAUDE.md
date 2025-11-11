@@ -1,6 +1,6 @@
 # CLAUDE.md - Developer Reference for AI Agents
 
-This document provides a comprehensive overview of the PlexDownloadarr codebase to help Claude agents (or any AI assistant) get up to speed quickly and work effectively on this project.
+This document provides a comprehensive overview of the LibraryDownloadarr codebase to help Claude agents (or any AI assistant) get up to speed quickly and work effectively on this project.
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
@@ -20,7 +20,7 @@ This document provides a comprehensive overview of the PlexDownloadarr codebase 
 
 ## Project Overview
 
-**PlexDownloadarr** is a modern web application that provides a user-friendly interface for downloading media from a Plex Media Server. It integrates with Plex's authentication system and respects user permissions.
+**LibraryDownloadarr** is a modern web application that provides a user-friendly interface for downloading media from a Plex Media Server. It integrates with Plex's authentication system and respects user permissions.
 
 ### Key Features
 - **Plex OAuth Authentication**: Users sign in with their Plex accounts
@@ -208,7 +208,7 @@ frontend/
 ### Important: Always Test Builds
 Before committing frontend changes, **always run `npm run build`** to catch TypeScript errors:
 ```bash
-cd /home/user/PlexDownloadarr/frontend
+cd /home/user/LibraryDownloadarr/frontend
 npm run build
 ```
 
@@ -656,7 +656,7 @@ const year = media.year ? `(${media.year})` : '';
 
 ### Session Management
 - Sessions stored in `req.session` via express-session
-- Session cookie: `plexdownloadarr-session`
+- Session cookie: `librarydownloadarr-session`
 - `requireAuth` middleware checks `req.session.userId`
 - Logout destroys session
 

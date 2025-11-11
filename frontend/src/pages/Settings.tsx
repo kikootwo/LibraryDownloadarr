@@ -318,9 +318,9 @@ export const Settings: React.FC = () => {
               <h2 className="text-xl md:text-2xl font-semibold mb-4">About</h2>
               <div className="space-y-2 text-xs md:text-sm text-gray-400">
                 <p>
-                  <span className="font-medium text-gray-300">PlexDownloadarr</span> v1.0.0
+                  <span className="font-medium text-gray-300">LibraryDownloadarr</span> v1.0.0
                 </p>
-                <p>A modern web application for downloading media from Plex Media Server</p>
+                <p>A modern web application for downloading media from your media library server</p>
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 {
-  "name": "PlexDownloadarr",
-  "short_name": "PlexDL",
-  "description": "Your Plex library, ready to download",
+  "name": "LibraryDownloadarr",
+  "short_name": "LibraryDL",
+  "description": "Your media library, ready to download",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

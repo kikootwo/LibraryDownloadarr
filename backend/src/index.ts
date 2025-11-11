@@ -69,7 +69,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 
 // Start server
 const server = app.listen(config.server.port, () => {
-  logger.info(`PlexDownloadarr server started on port ${config.server.port}`);
+  logger.info(`LibraryDownloadarr server started on port ${config.server.port}`);
 });
 
 // Graceful shutdown

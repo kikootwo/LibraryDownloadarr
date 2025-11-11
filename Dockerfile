@@ -49,7 +49,7 @@ RUN mkdir -p /app/data /app/logs
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=5069
-ENV DATABASE_PATH=/app/data/plexdownloadarr.db
+ENV DATABASE_PATH=/app/data/librarydownloadarr.db
 
 # Expose port
 EXPOSE 5069

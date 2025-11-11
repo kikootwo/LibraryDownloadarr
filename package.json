@@ -1,7 +1,7 @@
 {
-  "name": "plexdownloadarr",
+  "name": "librarydownloadarr",
   "version": "1.0.0",
-  "description": "A modern web application for downloading media from Plex Media Server",
+  "description": "A modern web application for downloading media from your media library server",
   "private": true,
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
@@ -25,9 +25,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/PlexDownloadarr.git"
+    "url": "https://github.com/yourusername/LibraryDownloadarr.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/PlexDownloadarr/issues"
+    "url": "https://github.com/yourusername/LibraryDownloadarr/issues"
   }
 }
