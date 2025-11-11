@@ -4,8 +4,16 @@ import { plexService } from '../services/plexService';
 import { logger } from '../utils/logger';
 import { AuthRequest, createAuthMiddleware } from '../middleware/auth';
 import axios from 'axios';
+import https from 'https';
 import path from 'path';
 import { createZipStream, ZipFileEntry } from '../utils/zipUtils';
+
+// HTTPS agent that bypasses SSL certificate validation for local Plex servers
+// This is necessary when connecting to Plex servers with self-signed certificates
+// or when using local IPs with plex.direct certificates
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+});
 
 export const createMediaRouter = (db: DatabaseService) => {
   const router = Router();
@@ -436,6 +444,7 @@ export const createMediaRouter = (db: DatabaseService) => {
           method: 'GET',
           url: downloadUrl,
           responseType: 'stream',
+          httpsAgent: httpsAgent,
         });
       } catch (downloadError: any) {
         // If Plex returns 403, it means the user doesn't have download permission
@@ -864,6 +873,7 @@ export const createMediaRouter = (db: DatabaseService) => {
         method: 'GET',
         url: thumbUrl,
         responseType: 'stream',
+        httpsAgent: httpsAgent,
       });
 
       res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
