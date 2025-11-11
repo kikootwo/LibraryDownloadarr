@@ -4,7 +4,7 @@ import { plexService } from '../services/plexService';
 import { logger } from '../utils/logger';
 import { AuthRequest, createAuthMiddleware } from '../middleware/auth';
 import axios from 'axios';
-import { createZipStream, calculateTotalSize, ZipFileEntry } from '../utils/zipUtils';
+import { createZipStream, ZipFileEntry } from '../utils/zipUtils';
 
 export const createMediaRouter = (db: DatabaseService) => {
   const router = Router();
