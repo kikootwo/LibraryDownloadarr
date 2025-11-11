@@ -44,13 +44,9 @@ export const createZipStream = async (
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    // If we know the total size, set Content-Length header
-    // Note: This is approximate because zip adds some overhead
-    if (totalSize > 0) {
-      // Add ~1% overhead for zip metadata
-      const estimatedZipSize = Math.floor(totalSize * 1.01);
-      res.setHeader('Content-Length', estimatedZipSize.toString());
-    }
+    // Don't set Content-Length for ZIP files - it's hard to predict exactly
+    // due to varying compression and metadata overhead. Let it stream without
+    // a known size to avoid ERR_CONTENT_LENGTH_MISMATCH errors.
 
     // Pipe archive to response
     archive.pipe(res);

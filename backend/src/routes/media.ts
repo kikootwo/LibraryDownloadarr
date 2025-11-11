@@ -491,6 +491,98 @@ export const createMediaRouter = (db: DatabaseService) => {
     }
   });
 
+  // Get season download size info
+  router.get('/season/:seasonRatingKey/size', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { seasonRatingKey } = req.params;
+      const { token, serverUrl, error } = getUserCredentials(req);
+
+      if (error) {
+        return res.status(403).json({ error });
+      }
+
+      if (!token || !serverUrl) {
+        return res.status(401).json({ error: 'Plex token required - configure in settings' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+
+      // Get all episodes in the season
+      const episodes = await plexService.getEpisodes(seasonRatingKey, token);
+
+      if (!episodes || episodes.length === 0) {
+        return res.status(404).json({ error: 'No episodes found in this season' });
+      }
+
+      // Calculate total size
+      let totalSize = 0;
+      let fileCount = 0;
+
+      for (const episode of episodes) {
+        if (episode.Media?.[0]?.Part?.[0]) {
+          const part = episode.Media[0].Part[0];
+          totalSize += part.size || 0;
+          fileCount++;
+        }
+      }
+
+      return res.json({
+        totalSize,
+        fileCount,
+        totalSizeGB: (totalSize / 1073741824).toFixed(2)
+      });
+    } catch (error) {
+      logger.error('Failed to get season size', { error });
+      return res.status(500).json({ error: 'Failed to get season size' });
+    }
+  });
+
+  // Get album download size info
+  router.get('/album/:albumRatingKey/size', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { albumRatingKey } = req.params;
+      const { token, serverUrl, error } = getUserCredentials(req);
+
+      if (error) {
+        return res.status(403).json({ error });
+      }
+
+      if (!token || !serverUrl) {
+        return res.status(401).json({ error: 'Plex token required - configure in settings' });
+      }
+
+      plexService.setServerConnection(serverUrl, token);
+
+      // Get all tracks in the album
+      const tracks = await plexService.getTracks(albumRatingKey, token);
+
+      if (!tracks || tracks.length === 0) {
+        return res.status(404).json({ error: 'No tracks found in this album' });
+      }
+
+      // Calculate total size
+      let totalSize = 0;
+      let fileCount = 0;
+
+      for (const track of tracks) {
+        if (track.Media?.[0]?.Part?.[0]) {
+          const part = track.Media[0].Part[0];
+          totalSize += part.size || 0;
+          fileCount++;
+        }
+      }
+
+      return res.json({
+        totalSize,
+        fileCount,
+        totalSizeGB: (totalSize / 1073741824).toFixed(2)
+      });
+    } catch (error) {
+      logger.error('Failed to get album size', { error });
+      return res.status(500).json({ error: 'Failed to get album size' });
+    }
+  });
+
   // Download entire season as zip
   router.get('/season/:seasonRatingKey/download', authMiddleware, async (req: AuthRequest, res) => {
     try {

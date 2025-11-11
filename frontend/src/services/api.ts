@@ -161,6 +161,20 @@ class ApiClient {
     return `/api/media/${ratingKey}/download?partKey=${encodeURIComponent(partKey)}`;
   }
 
+  async getSeasonSize(seasonRatingKey: string): Promise<{ totalSize: number; fileCount: number; totalSizeGB: string }> {
+    const response = await this.client.get<{ totalSize: number; fileCount: number; totalSizeGB: string }>(
+      `/media/season/${seasonRatingKey}/size`
+    );
+    return response.data;
+  }
+
+  async getAlbumSize(albumRatingKey: string): Promise<{ totalSize: number; fileCount: number; totalSizeGB: string }> {
+    const response = await this.client.get<{ totalSize: number; fileCount: number; totalSizeGB: string }>(
+      `/media/album/${albumRatingKey}/size`
+    );
+    return response.data;
+  }
+
   getSeasonDownloadUrl(seasonRatingKey: string): string {
     return `/api/media/season/${seasonRatingKey}/download`;
   }

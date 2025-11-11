@@ -91,27 +91,75 @@ export const MediaDetail: React.FC = () => {
     return download?.progress || 0;
   };
 
-  const handleDownload = async (itemRatingKey: string, partKey: string, filename: string, itemTitle: string) => {
+  const handleDownload = async (itemRatingKey: string, partKey: string, filename: string, itemTitle: string, fileSize?: number) => {
+    // Check file size and warn if over 10GB
+    const tenGB = 10737418240;
+    if (fileSize && fileSize > tenGB) {
+      const sizeGB = (fileSize / 1073741824).toFixed(2);
+      const confirmed = window.confirm(
+        `This file is ${sizeGB} GB. Large downloads may take a long time and use significant bandwidth.\n\nDo you want to continue?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     // Use the global download context with the specific item's rating key
     await startDownload(itemRatingKey, partKey, filename, itemTitle);
   };
 
   const handleSeasonDownload = async (seasonRatingKey: string, seasonTitle: string) => {
-    const downloadUrl = api.getSeasonDownloadUrl(seasonRatingKey);
-    const showName = media?.title || 'Unknown Show';
-    const seasonNumber = seasons.find(s => s.ratingKey === seasonRatingKey)?.index || 0;
-    const zipFilename = `${showName} - S${String(seasonNumber).padStart(2, '0')}.zip`;
+    try {
+      // Get size info first
+      const sizeInfo = await api.getSeasonSize(seasonRatingKey);
 
-    // Use the download context to track the season download
-    await startDownload(seasonRatingKey, downloadUrl, zipFilename, `${seasonTitle} (Full Season)`);
+      // Check if over 10GB and confirm
+      const tenGB = 10737418240;
+      if (sizeInfo.totalSize > tenGB) {
+        const confirmed = window.confirm(
+          `This season contains ${sizeInfo.fileCount} episodes totaling ${sizeInfo.totalSizeGB} GB.\n\nLarge downloads may take a long time and use significant bandwidth.\n\nDo you want to continue?`
+        );
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      const downloadUrl = api.getSeasonDownloadUrl(seasonRatingKey);
+      const showName = media?.title || 'Unknown Show';
+      const seasonNumber = seasons.find(s => s.ratingKey === seasonRatingKey)?.index || 0;
+      const zipFilename = `${showName} - S${String(seasonNumber).padStart(2, '0')}.zip`;
+
+      // Use the download context to track the season download
+      await startDownload(seasonRatingKey, downloadUrl, zipFilename, `${seasonTitle} (Full Season)`);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to start season download');
+    }
   };
 
   const handleAlbumDownload = async (albumRatingKey: string, albumTitle: string) => {
-    const downloadUrl = api.getAlbumDownloadUrl(albumRatingKey);
-    const zipFilename = `${albumTitle}.zip`;
+    try {
+      // Get size info first
+      const sizeInfo = await api.getAlbumSize(albumRatingKey);
 
-    // Use the download context to track the album download
-    await startDownload(albumRatingKey, downloadUrl, zipFilename, `${albumTitle} (Full Album)`);
+      // Check if over 10GB and confirm
+      const tenGB = 10737418240;
+      if (sizeInfo.totalSize > tenGB) {
+        const confirmed = window.confirm(
+          `This album contains ${sizeInfo.fileCount} tracks totaling ${sizeInfo.totalSizeGB} GB.\n\nLarge downloads may take a long time and use significant bandwidth.\n\nDo you want to continue?`
+        );
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      const downloadUrl = api.getAlbumDownloadUrl(albumRatingKey);
+      const zipFilename = `${albumTitle}.zip`;
+
+      // Use the download context to track the album download
+      await startDownload(albumRatingKey, downloadUrl, zipFilename, `${albumTitle} (Full Album)`);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to start album download');
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -269,7 +317,8 @@ export const MediaDetail: React.FC = () => {
                                         track.ratingKey,
                                         track.Media![0].Part[0].key,
                                         track.Media![0].Part[0].file.split('/').pop() || 'download',
-                                        track.title
+                                        track.title,
+                                        track.Media![0].Part[0].size
                                       )
                                     }
                                     disabled={isDownloading(track.Media![0].Part[0].key)}
@@ -330,7 +379,8 @@ export const MediaDetail: React.FC = () => {
                                         episode.ratingKey,
                                         episode.Media![0].Part[0].key,
                                         episode.Media![0].Part[0].file.split('/').pop() || 'download',
-                                        episode.title
+                                        episode.title,
+                                        episode.Media![0].Part[0].size
                                       )
                                     }
                                     disabled={isDownloading(episode.Media![0].Part[0].key)}
@@ -435,7 +485,8 @@ export const MediaDetail: React.FC = () => {
                                                   episode.ratingKey,
                                                   episode.Media![0].Part[0].key,
                                                   episode.Media![0].Part[0].file.split('/').pop() || 'download',
-                                                  episode.title
+                                                  episode.title,
+                                                  episode.Media![0].Part[0].size
                                                 )
                                               }
                                               disabled={isDownloading(episode.Media![0].Part[0].key)}
@@ -494,7 +545,8 @@ export const MediaDetail: React.FC = () => {
                                           ratingKey!,
                                           part.key,
                                           part.file.split('/').pop() || 'download',
-                                          media.title
+                                          media.title,
+                                          part.size
                                         )
                                       }
                                       disabled={isDownloading(part.key)}
